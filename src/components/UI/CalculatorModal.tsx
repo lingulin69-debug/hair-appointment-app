@@ -161,7 +161,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 p-4">
+        <div className="grid grid-cols-4 gap-1.5 p-3 sm:gap-2 sm:p-4">
           <Button
             onClick={handleClear}
             className="border border-[#E8E3D8] bg-white text-[#C75D4E]"
@@ -233,7 +233,7 @@ const Button: React.FC<ButtonProps> = ({ onClick, children, className = '' }) =>
       type="button"
       onClick={onClick}
       className={`
-        flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold md:h-16 md:w-16
+        flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold sm:h-14 sm:w-14 md:h-16 md:w-16
         ${interactionMotion.subtleButton} active:shadow-inner
         ${
           className ||
