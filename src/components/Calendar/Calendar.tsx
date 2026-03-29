@@ -114,7 +114,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="h-full bg-[#FCFAF5] text-[#4A3B32]">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#FCFAF5] text-[#4A3B32]">
       <div className="flex items-start justify-between gap-4 border-b border-[#E8E3D8] p-4 md:p-6">
         <div className="min-w-0 text-left">
           <div className="text-xs font-bold tracking-[0.32em] text-[#8C7A6B] md:text-sm">
@@ -169,7 +169,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-7 auto-rows-[132px] md:auto-rows-[168px]">
+      <div className="grid min-h-0 flex-1 grid-cols-7 auto-rows-[132px] md:auto-rows-[168px]">
         {days.map((day, index) => {
           if (!day) {
             return (

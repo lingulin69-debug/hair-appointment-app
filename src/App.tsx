@@ -492,9 +492,11 @@ export default function App() {
 
       <div className="relative flex flex-1 overflow-hidden p-3 md:p-6 lg:space-x-8">
         <div
-          className={`custom-scrollbar ${interactionMotion.surface} flex flex-1 flex-col overflow-y-auto rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]`}
+          className={`custom-scrollbar ${interactionMotion.surface} flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]`}
         >
-          {currentView === 'calendar' && (
+          <div
+            className={currentView === 'calendar' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}
+          >
             <Calendar
               currentDate={calendarCurrentDate}
               appointments={appointments}
@@ -509,7 +511,7 @@ export default function App() {
                 setIsApptDetailOpen(true);
               }}
             />
-          )}
+          </div>
 
           <Suspense fallback={<ViewLoader />}>
             {currentView === 'clients' && (
