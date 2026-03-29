@@ -216,13 +216,8 @@ export default function App() {
     if (!matchedService) {
       setTempService(defaultService.name);
       setTempPrice(defaultService.price);
-      return;
     }
-
-    if (matchedService.price !== tempPrice) {
-      setTempPrice(matchedService.price);
-    }
-  }, [defaultService, serviceItems, tempPrice, tempService]);
+  }, [defaultService, serviceItems, tempService]);
 
   const closeNewAppointmentModal = useCallback(() => {
     setIsNewApptModalOpen(false);
