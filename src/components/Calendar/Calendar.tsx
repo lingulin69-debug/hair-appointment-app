@@ -114,8 +114,8 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#FCFAF5] text-[#4A3B32]">
-      <div className="flex items-start justify-between gap-4 border-b border-[#E8E3D8] p-4 md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FCFAF5] text-[#4A3B32]">
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#E8E3D8] p-4 md:p-6">
         <div className="min-w-0 text-left">
           <div className="text-xs font-bold tracking-[0.32em] text-[#8C7A6B] md:text-sm">
             預約日曆
@@ -152,7 +152,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-[#E8E3D8] bg-[#F4F0EA]/60">
+      <div className="grid shrink-0 grid-cols-7 border-b border-[#E8E3D8] bg-[#F4F0EA]/60">
         {DAYS_OF_WEEK.map((day) => (
           <div
             key={day}
@@ -163,19 +163,21 @@ export const Calendar: React.FC<CalendarProps> = ({
         ))}
       </div>
 
-      {isLoading && (
-        <div className="border-b border-[#E8E3D8] bg-[#F8F2E8] px-4 py-3 text-sm font-bold text-[#7A6B5D] md:px-6">
-          正在同步本月預約資料...
-        </div>
-      )}
+      <div
+        className={`shrink-0 border-b border-[#E8E3D8] bg-[#F8F2E8] px-4 py-3 text-sm font-bold text-[#7A6B5D] transition-[max-height,opacity,padding] duration-200 md:px-6 ${
+          isLoading ? 'max-h-12 opacity-100' : 'max-h-0 overflow-hidden border-b-0 py-0 opacity-0'
+        }`}
+      >
+        正在同步本月預約資料...
+      </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-7 auto-rows-[132px] md:auto-rows-[168px]">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-7 overflow-y-auto">
         {days.map((day, index) => {
           if (!day) {
             return (
               <div
                 key={`empty-${index}`}
-                className="border-b border-r border-[#E8E3D8] bg-[#F8F5EF]"
+                className="min-h-[132px] border-b border-r border-[#E8E3D8] bg-[#F8F5EF] md:min-h-[168px]"
               />
             );
           }
@@ -193,7 +195,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           return (
             <div
               key={dateStr}
-              className={`group relative border-b border-r border-[#E8E3D8] p-2 transition-colors md:p-3 ${
+              className={`group relative min-h-[132px] border-b border-r border-[#E8E3D8] p-2 transition-colors md:min-h-[168px] md:p-3 ${
                 isSelected ? 'bg-[#F4F0EA]' : 'bg-[#FCFAF5]'
               } ${isLeave ? 'opacity-75' : 'hover:bg-[#F9F6F0]'}`}
             >
@@ -285,47 +287,53 @@ export const Calendar: React.FC<CalendarProps> = ({
         })}
       </div>
 
-      {selectedDate && (
-        <div className="border-t border-[#E8E3D8] p-4 md:p-6">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm text-[#7A6B5D]">已選日期</div>
-              <div className="text-lg font-bold">{selectedDate}</div>
-            </div>
-            {onAddAppt && !leaveSet.has(selectedDate) && (
-              <button
-                type="button"
-                onClick={() => onAddAppt(selectedDate)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-                新增預約
-              </button>
-            )}
-          </div>
-
-          {selectedAppointments.length === 0 ? (
-            <p className="text-sm text-[#7A6B5D]">這一天目前沒有預約。</p>
-          ) : (
-            <div className="space-y-2">
-              {selectedAppointments.map((appt) => (
+      <div
+        className={`shrink-0 border-t border-[#E8E3D8] transition-[max-height,opacity,padding] duration-200 ${
+          selectedDate ? 'max-h-[400px] p-4 opacity-100 md:p-6' : 'max-h-0 overflow-hidden p-0 opacity-0'
+        }`}
+      >
+        {selectedDate && (
+          <>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm text-[#7A6B5D]">已選日期</div>
+                <div className="text-lg font-bold">{selectedDate}</div>
+              </div>
+              {onAddAppt && !leaveSet.has(selectedDate) && (
                 <button
-                  key={appt.id}
                   type="button"
-                  onClick={() => onSelectAppt?.(appt)}
-                  className="w-full rounded-lg border border-[#E8E3D8] bg-white p-3 text-left hover:shadow-sm"
+                  onClick={() => onAddAppt(selectedDate)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-4 py-2.5 text-sm font-bold text-white shadow-sm"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold">{appt.time}</span>
-                    <span className="text-sm text-[#7A6B5D]">{appt.service}</span>
-                  </div>
-                  <div className="mt-1 text-sm">{appt.clientName}</div>
+                  <Plus className="h-4 w-4" />
+                  新增預約
                 </button>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {selectedAppointments.length === 0 ? (
+              <p className="text-sm text-[#7A6B5D]">這一天目前沒有預約。</p>
+            ) : (
+              <div className="space-y-2">
+                {selectedAppointments.map((appt) => (
+                  <button
+                    key={appt.id}
+                    type="button"
+                    onClick={() => onSelectAppt?.(appt)}
+                    className="w-full rounded-lg border border-[#E8E3D8] bg-white p-3 text-left hover:shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold">{appt.time}</span>
+                      <span className="text-sm text-[#7A6B5D]">{appt.service}</span>
+                    </div>
+                    <div className="mt-1 text-sm">{appt.clientName}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

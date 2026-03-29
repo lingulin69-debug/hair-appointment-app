@@ -61,13 +61,15 @@ function isUsableClient(client: Client | null | undefined): client is Client {
 
 function ViewLoader() {
   return (
-    <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 lg:grid-cols-3 md:p-6">
-      {Array.from({ length: 6 }, (_, index) => (
-        <div
-          key={index}
-          className="h-32 animate-pulse rounded-2xl border border-[#E8E3D8] bg-white"
-        />
-      ))}
+    <div className="flex min-h-0 flex-1 flex-col p-4 md:p-6">
+      <div className="grid flex-1 grid-cols-1 content-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div
+            key={index}
+            className="h-32 animate-pulse rounded-2xl border border-[#E8E3D8] bg-white"
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -492,10 +494,11 @@ export default function App() {
 
       <div className="relative flex flex-1 overflow-hidden p-3 md:p-6 lg:space-x-8">
         <div
-          className={`custom-scrollbar ${interactionMotion.surface} flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]`}
+          className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]"
         >
           <div
-            className={currentView === 'calendar' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}
+            className={currentView === 'calendar' ? 'contents' : 'hidden'}
+            aria-hidden={currentView !== 'calendar'}
           >
             <Calendar
               currentDate={calendarCurrentDate}

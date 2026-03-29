@@ -42,7 +42,7 @@ export const ClientList: React.FC<ClientListProps> = ({
   }, [clients, searchQuery]);
 
   return (
-    <div className="min-h-full bg-[#FCFAF5] p-4 md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#FCFAF5] p-4 md:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="rounded-[30px] border border-[#DDD4C8] bg-[#F7F1E7] px-5 py-5 shadow-[0_16px_40px_rgba(74,59,50,0.06)] md:px-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">

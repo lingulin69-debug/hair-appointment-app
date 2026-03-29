@@ -85,7 +85,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
   }, [activeFilter, safeStoreItems]);
 
   return (
-    <div className="min-h-full bg-[#FCFAF5] p-4 md:p-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#FCFAF5] p-4 md:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
