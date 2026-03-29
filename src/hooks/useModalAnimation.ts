@@ -1,25 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-export function useModalAnimation(isOpen: boolean, duration = 300) {
+export function useModalAnimation(isOpen: boolean, duration = 200) {
   const [shouldRender, setShouldRender] = useState(isOpen);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(isOpen);
+  const rafId = useRef<number>(0);
+  const timerId = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    let timerId: ReturnType<typeof setTimeout>;
-
     if (isOpen) {
       setShouldRender(true);
-      // We need a tiny delay to allow the component to be added to the DOM
-      // before we trigger the animation by setting isVisible to true.
-      // A requestAnimationFrame would also work here.
-      timerId = setTimeout(() => setIsVisible(true), 10);
+      // Use double requestAnimationFrame to ensure the DOM has been painted
+      // before triggering the enter animation, preventing initial flicker
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      });
     } else {
       setIsVisible(false);
-      timerId = setTimeout(() => setShouldRender(false), duration);
+      timerId.current = setTimeout(() => setShouldRender(false), duration);
     }
 
     return () => {
-      clearTimeout(timerId);
+      cancelAnimationFrame(rafId.current);
+      clearTimeout(timerId.current);
     };
   }, [isOpen, duration]);
 
