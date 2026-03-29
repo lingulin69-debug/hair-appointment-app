@@ -23,9 +23,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <div className="z-10 flex shrink-0 flex-col justify-between gap-4 border-b border-[#E2DCD0] bg-white/50 px-4 py-4 backdrop-blur-md md:h-[100px] md:flex-row md:items-center md:px-10">
       <div className="flex items-center justify-between">
-        <div className="flex items-center text-3xl font-black tracking-widest text-[#4A3B32]">
-          <span className="ml-1 text-lg font-mono tracking-wider text-[#8C7A6B]">
+        <div className="flex flex-col">
+          <span className="font-mono text-2xl font-black tracking-[0.18em] text-[#4A3B32] md:text-3xl">
             Amy.SALON
+          </span>
+          <span className="text-[10px] font-bold tracking-[0.3em] text-[#B09A88] md:text-xs">
+            HAIR STUDIO
           </span>
         </div>
 

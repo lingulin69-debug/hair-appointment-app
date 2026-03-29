@@ -205,22 +205,8 @@ export default function App() {
     setTempNotes('');
   }, [defaultService]);
 
-  useEffect(() => {
-    if (!defaultService) {
-      return;
-    }
-
-    const matchedService = serviceItems.find((item) => item.name === tempService);
-    if (!matchedService) {
-      setTempService(defaultService.name);
-      setTempPrice(defaultService.price);
-      return;
-    }
-
-    if (matchedService.price !== tempPrice) {
-      setTempPrice(matchedService.price);
-    }
-  }, [defaultService, serviceItems, tempPrice, tempService]);
+  // Sync service name only when modal is closed (draft reset), not while user is editing.
+  // Price is intentionally NOT synced here so users can manually override it.
 
   const closeNewAppointmentModal = useCallback(() => {
     setIsNewApptModalOpen(false);
