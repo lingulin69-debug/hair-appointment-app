@@ -71,12 +71,12 @@ export default function ClientForm({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} flex w-full max-w-lg flex-col p-8 md:p-12 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} flex w-full max-w-lg flex-col p-6 md:p-8 will-change-transform ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >
-        <div className="mb-8 flex items-center justify-between border-b border-[#E2DCD0] pb-6">
-          <h2 className="text-4xl font-black tracking-widest text-[#4A3B32]">
+        <div className="mb-6 flex items-center justify-between border-b border-[#E2DCD0] pb-4">
+          <h2 className="text-2xl font-black tracking-widest text-[#4A3B32] md:text-3xl">
             {isEdit ? '編輯顧客' : '新增顧客'}
           </h2>
           <button
@@ -89,7 +89,7 @@ export default function ClientForm({
           </button>
         </div>
 
-        <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto pr-1">
+        <div className="custom-scrollbar flex-1 space-y-5 overflow-y-auto pr-1 md:space-y-6">
           <div>
             <label className="mb-3 block text-sm font-bold tracking-widest text-[#8C7A6B]">
               姓名 NAME

@@ -134,7 +134,7 @@ export const CalculatorModal: React.FC<CalculatorModalProps> = ({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.compactPanel} w-full max-w-sm overflow-hidden bg-[#FCFAF5] ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.compactPanel} w-full max-w-sm bg-[#FCFAF5] will-change-transform ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >

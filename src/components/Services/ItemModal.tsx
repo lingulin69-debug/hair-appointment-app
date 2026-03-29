@@ -78,12 +78,12 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.compactPanel} flex w-full max-w-sm flex-col p-8 md:p-10 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.compactPanel} flex w-full max-w-sm flex-col p-6 md:p-8 will-change-transform ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >
-        <div className="mb-8 flex items-center justify-between border-b border-[#E2DCD0] pb-4">
-          <h2 className="text-3xl font-black tracking-widest text-[#4A3B32]">
+        <div className="mb-6 flex items-center justify-between border-b border-[#E2DCD0] pb-4">
+          <h2 className="text-2xl font-black tracking-widest text-[#4A3B32] md:text-3xl">
             {isEdit ? '編輯項目' : '新增項目'}
           </h2>
           <button

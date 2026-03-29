@@ -1,26 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useModalAnimation(isOpen: boolean, duration = 300) {
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
+  const rafId = useRef<number | null>(null);
+  const timerId = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let timerId: ReturnType<typeof setTimeout>;
+    // Cleanup function to cancel any pending animations
+    const cleanup = () => {
+      if (rafId.current !== null) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
+      if (timerId.current !== null) {
+        clearTimeout(timerId.current);
+        timerId.current = null;
+      }
+    };
 
     if (isOpen) {
+      cleanup();
       setShouldRender(true);
-      // We need a tiny delay to allow the component to be added to the DOM
-      // before we trigger the animation by setting isVisible to true.
-      // A requestAnimationFrame would also work here.
-      timerId = setTimeout(() => setIsVisible(true), 10);
+      // Use double RAF to ensure the DOM has painted before starting animation
+      // This prevents layout thrashing and ensures smooth entry animation
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      });
     } else {
+      cleanup();
       setIsVisible(false);
-      timerId = setTimeout(() => setShouldRender(false), duration);
+      timerId.current = setTimeout(() => setShouldRender(false), duration);
     }
 
-    return () => {
-      clearTimeout(timerId);
-    };
+    return cleanup;
   }, [isOpen, duration]);
 
   return { shouldRender, isVisible };

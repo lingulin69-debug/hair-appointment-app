@@ -215,7 +215,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                     <button
                       type="button"
                       onClick={() => onToggleLeave(dateStr)}
-                      className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors md:h-9 md:w-9 ${
+                      className={`flex h-8 w-8 transform-gpu items-center justify-center rounded-xl transition-all duration-150 active:scale-95 md:h-9 md:w-9 ${
                         isLeave
                           ? 'border border-[#C75D4E] bg-[#FBE9E5] text-[#B24F41]'
                           : 'text-[#8C7A6B] hover:bg-[#F4F0EA]'
@@ -230,7 +230,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                     <button
                       type="button"
                       onClick={() => onAddAppt(dateStr)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#E2DCD0] bg-white text-[#4A3B32] shadow-sm transition-colors hover:border-[#D6CABC] hover:bg-[#F4F0EA] md:h-9 md:w-9"
+                      className="flex h-8 w-8 transform-gpu items-center justify-center rounded-xl border border-[#E2DCD0] bg-white text-[#4A3B32] shadow-sm transition-all duration-150 hover:border-[#D6CABC] hover:bg-[#F4F0EA] active:scale-95 md:h-9 md:w-9"
                       aria-label="新增預約"
                     >
                       <Plus className="h-4 w-4 md:h-[18px] md:w-[18px]" />
@@ -263,7 +263,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                         setSelectedDate(dateStr);
                         onSelectAppt?.(appt);
                       }}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#DCCEBE] bg-white text-sm font-black text-[#4A3B32] shadow-sm transition hover:border-[#C75D4E] hover:text-[#C75D4E] md:h-11 md:w-11"
+                      className="flex h-10 w-10 transform-gpu items-center justify-center rounded-full border border-[#DCCEBE] bg-white text-sm font-black text-[#4A3B32] shadow-sm transition-all duration-150 hover:border-[#C75D4E] hover:text-[#C75D4E] active:scale-95 md:h-11 md:w-11"
                     >
                       {getClientBadge(appt.clientName)}
                     </button>

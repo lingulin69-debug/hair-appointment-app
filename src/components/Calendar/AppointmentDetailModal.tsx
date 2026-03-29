@@ -57,7 +57,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} w-full max-w-2xl rounded-[32px] border border-[#E6DED2] bg-[#FFFCF7] p-6 md:p-8 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} w-full max-w-2xl rounded-[32px] border border-[#E6DED2] bg-[#FFFCF7] p-6 md:p-8 will-change-transform ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >

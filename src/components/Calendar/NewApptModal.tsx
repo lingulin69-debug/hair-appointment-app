@@ -142,21 +142,24 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
   );
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !shouldRender) {
       return;
     }
 
-    if (availableTimes.length === 0) {
-      if (tempTime) {
-        setTempTime('');
+    // Use a microtask to batch state updates and avoid layout shift
+    queueMicrotask(() => {
+      if (availableTimes.length === 0) {
+        if (tempTime) {
+          setTempTime('');
+        }
+        return;
       }
-      return;
-    }
 
-    if (!tempTime || !availableTimes.includes(tempTime)) {
-      setTempTime(availableTimes[0]);
-    }
-  }, [availableTimes, isOpen, setTempTime, tempTime]);
+      if (!tempTime || !availableTimes.includes(tempTime)) {
+        setTempTime(availableTimes[0]);
+      }
+    });
+  }, [availableTimes, isOpen, shouldRender, setTempTime, tempTime]);
 
   const handleHourChange = (hour: string) => {
     const nextMinute =
@@ -195,12 +198,12 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
         onClick={onClose}
       />
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} ${modalAnimation.base} flex max-w-lg flex-col p-8 md:p-12 ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} ${modalAnimation.base} flex max-w-lg flex-col p-6 md:p-8 will-change-transform ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >
-        <div className="mb-8 flex shrink-0 items-center justify-between border-b border-[#E2DCD0] pb-6">
-          <h2 className="text-4xl font-black tracking-widest text-[#4A3B32]">
+        <div className="mb-6 flex shrink-0 items-center justify-between border-b border-[#E2DCD0] pb-4">
+          <h2 className="text-2xl font-black tracking-widest text-[#4A3B32] md:text-3xl">
             新增預約
           </h2>
           <button
@@ -213,7 +216,7 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
           </button>
         </div>
 
-        <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto pr-2">
+        <div className="custom-scrollbar flex-1 space-y-5 overflow-y-auto pr-2 md:space-y-6">
           {(isClientsDataLoading || isServicesDataLoading) && (
             <div className="space-y-3">
               {isClientsDataLoading && (
