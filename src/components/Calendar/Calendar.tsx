@@ -169,13 +169,13 @@ export const Calendar: React.FC<CalendarProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-7 auto-rows-[132px] md:auto-rows-[168px]">
+      <div className="grid grid-cols-7 auto-rows-[minmax(100px,auto)] md:auto-rows-[168px]">
         {days.map((day, index) => {
           if (!day) {
             return (
               <div
                 key={`empty-${index}`}
-                className="border-b border-r border-[#E8E3D8] bg-[#F8F5EF]"
+                className="min-h-[100px] border-b border-r border-[#E8E3D8] bg-[#F8F5EF] md:min-h-[168px]"
               />
             );
           }
