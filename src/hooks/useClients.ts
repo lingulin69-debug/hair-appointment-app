@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db, colPath } from '../config/firebase';
 import type { Client } from '../types';
+import { loadCachedValue, saveCachedValue } from '../utils/cache';
 
 function normalizeClientName(name: string): string {
   return name.trim().toLocaleLowerCase('zh-TW');
@@ -18,6 +19,13 @@ type UseClientsOptions = {
   enabled?: boolean;
   searchQuery?: string;
 };
+
+const CLIENTS_CACHE_KEY = 'clients';
+const CLIENTS_CACHE_VERSION = 1;
+
+function sortClients(data: Client[]): Client[] {
+  return [...data].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+}
 
 export function useClients({
   enabled = true,
@@ -33,7 +41,17 @@ export function useClients({
       return;
     }
 
-    setIsLoading(true);
+    const cachedClients = loadCachedValue<Client[]>(
+      CLIENTS_CACHE_KEY,
+      CLIENTS_CACHE_VERSION
+    );
+
+    if (cachedClients?.length) {
+      setClients(sortClients(cachedClients));
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
 
     const unsubscribe = onSnapshot(
       clientsRef.current,
@@ -43,9 +61,7 @@ export function useClients({
           ...entry.data(),
         })) as Client[];
 
-        setClients(
-          [...data].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
-        );
+        setClients(sortClients(data));
         setIsLoading(false);
       },
       (error) => {
@@ -56,6 +72,11 @@ export function useClients({
 
     return unsubscribe;
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || clients.length === 0) return;
+    saveCachedValue(CLIENTS_CACHE_KEY, clients, CLIENTS_CACHE_VERSION);
+  }, [clients, enabled]);
 
   const filteredClients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

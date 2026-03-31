@@ -96,6 +96,7 @@ export default function App() {
   const [tempPax, setTempPax] = useState(1);
   const [tempNotes, setTempNotes] = useState('');
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const shouldLoadCalendarData = currentView === 'calendar' || isNewApptModalOpen;
   const shouldLoadAppointments =
@@ -267,37 +268,37 @@ export default function App() {
   );
 
   const handleSaveAppointment = useCallback(async () => {
+    const trimmedClientName = tempClientName.trim();
+    const trimmedPhone = tempPhone.trim();
+    const matchedService =
+      serviceItems.find((item) => item.name === tempService) ?? defaultService;
+    const isTimeOccupied = appointments.some(
+      (appointment) =>
+        appointment.dateStr === selectedDateStr && appointment.time === tempTime
+    );
+
+    if (
+      isSaving ||
+      !trimmedClientName ||
+      !selectedDateStr ||
+      !isExactDateString(selectedDateStr) ||
+      !matchedService ||
+      !tempTime ||
+      isTimeOccupied
+    ) {
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      const trimmedClientName = tempClientName.trim();
-      const trimmedPhone = tempPhone.trim();
-      const matchedService =
-        serviceItems.find((item) => item.name === tempService) ?? defaultService;
-      const isTimeOccupied = appointments.some(
-        (appointment) =>
-          appointment.dateStr === selectedDateStr && appointment.time === tempTime
-      );
-
-      if (
-        !trimmedClientName ||
-        !selectedDateStr ||
-        !isExactDateString(selectedDateStr) ||
-        !matchedService ||
-        !tempTime ||
-        isTimeOccupied
-      ) {
-        return;
-      }
-
       const client = await ensureClient(trimmedClientName, {
         lastVisit: selectedDateStr,
         phone: trimmedPhone,
       });
 
-      if (!client) {
-        return;
-      }
+      if (!client) return;
 
-      const appointmentId = await addAppointment({
+      await addAppointment({
         clientId: client.id,
         clientName: client.name,
         phone: trimmedPhone,
@@ -309,14 +310,11 @@ export default function App() {
         totalPrice: tempPrice * tempPax,
         status: 'pending',
       });
-
-      if (!appointmentId) {
-        return;
-      }
-
-      closeNewAppointmentModal();
     } catch (error) {
       console.error('Error saving appointment:', error);
+    } finally {
+      setIsSaving(false);
+      closeNewAppointmentModal();
     }
   }, [
     addAppointment,
@@ -324,24 +322,25 @@ export default function App() {
     closeNewAppointmentModal,
     defaultService,
     ensureClient,
+    isSaving,
     selectedDateStr,
     serviceItems,
     tempClientName,
     tempNotes,
     tempPax,
     tempPhone,
+    tempPrice,
     tempService,
     tempTime,
   ]);
 
   const handleConfirmClient = useCallback(
     async (clientData: Omit<Client, 'id'>) => {
-      try {
-        const trimmedName = clientData.name.trim();
-        if (!trimmedName) {
-          return;
-        }
+      const trimmedName = clientData.name.trim();
+      if (!trimmedName || isSaving) return;
 
+      setIsSaving(true);
+      try {
         const payload = {
           ...clientData,
           name: trimmedName,
@@ -351,66 +350,53 @@ export default function App() {
         };
 
         if (activeClient) {
-          const updated = await updateClient(activeClient.id, payload);
-          if (!updated) {
-            return;
-          }
+          await updateClient(activeClient.id, payload);
         } else {
-          const id = await addClient(payload);
-          if (!id) {
-            return;
-          }
+          await addClient(payload);
         }
-
-        closeClientForm();
       } catch (error) {
         console.error('Error saving client:', error);
+      } finally {
+        setIsSaving(false);
+        closeClientForm();
       }
     },
-    [activeClient, addClient, closeClientForm, updateClient]
+    [activeClient, addClient, closeClientForm, isSaving, updateClient]
   );
 
   const handleConfirmItem = useCallback(
     async (itemData: ItemFormData) => {
+      const trimmedName = itemData.name.trim();
+      const price = Number(itemData.price);
+      const duration = itemData.type === 'service' ? itemData.duration.trim() : '-';
+
+      if (!trimmedName || Number.isNaN(price) || price < 0 || isSaving) return;
+
+      setIsSaving(true);
       try {
-        const trimmedName = itemData.name.trim();
-        const price = Number(itemData.price);
-        const duration = itemData.type === 'service' ? itemData.duration.trim() : '-';
-
-        if (!trimmedName || Number.isNaN(price) || price < 0) {
-          return;
-        }
-
         if (activeStoreItem) {
-          const updated = await updateStoreItem(activeStoreItem.id, {
+          await updateStoreItem(activeStoreItem.id, {
             name: trimmedName,
             price,
             duration: duration || '-',
             type: itemData.type,
           });
-
-          if (!updated) {
-            return;
-          }
         } else {
-          const id = await addStoreItem({
+          await addStoreItem({
             name: trimmedName,
             price,
             duration: duration || '-',
             type: itemData.type,
           });
-
-          if (!id) {
-            return;
-          }
         }
-
-        closeItemForm();
       } catch (error) {
         console.error('Error saving store item:', error);
+      } finally {
+        setIsSaving(false);
+        closeItemForm();
       }
     },
-    [activeStoreItem, addStoreItem, closeItemForm, updateStoreItem]
+    [activeStoreItem, addStoreItem, closeItemForm, isSaving, updateStoreItem]
   );
 
   const handleDeleteItem = useCallback(
