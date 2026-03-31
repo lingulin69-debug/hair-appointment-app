@@ -160,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="mb-5">
             <h2 className="text-xl font-bold text-[#4A3B32]">客流量</h2>
             <p className="mt-1 text-sm text-[#7A6B5D]">
-              顯示所選區間內各時間桶的預約數。
+              顯示所選區間內各時間的預約數。
             </p>
           </div>
 
