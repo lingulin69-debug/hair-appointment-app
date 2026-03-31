@@ -6,6 +6,7 @@ import { useAppointments } from './hooks/useAppointments';
 import { useClients } from './hooks/useClients';
 import { useLeaves } from './hooks/useLeaves';
 import { useStoreItems } from './hooks/useStoreItems';
+import { useSync } from './hooks/useSync';
 import { NewApptModal } from './components/Calendar/NewApptModal';
 import { AppointmentDetailModal } from './components/Calendar/AppointmentDetailModal';
 import ClientForm from './components/Client/ClientForm';
@@ -161,6 +162,7 @@ export default function App() {
     enabled: currentView === 'calendar',
     range: calendarDateRange,
   });
+  const { status: syncStatus, syncNow } = useSync();
 
   const defaultService = serviceItems[0] ?? null;
   const safeClients = useMemo(
@@ -492,6 +494,8 @@ export default function App() {
         currentView={currentView}
         onViewChange={handleViewChange}
         onCalcOpen={() => setIsCalcOpen(true)}
+        syncStatus={syncStatus}
+        onSyncNow={syncNow}
       />
 
       <div className="relative flex flex-1 overflow-hidden p-1.5 md:p-6 lg:space-x-8">

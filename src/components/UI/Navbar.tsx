@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Calculator, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calculator, ChevronLeft, ChevronRight, CloudOff, Loader2, CheckCircle2, Upload } from 'lucide-react';
 import { interactionMotion } from '../../styles/interactionMotion';
+
+type SyncStatus = 'online' | 'syncing' | 'synced' | 'offline';
 
 interface NavbarProps {
   currentView: string;
   onViewChange: (view: string) => void;
   onCalcOpen: () => void;
+  syncStatus?: SyncStatus;
+  onSyncNow?: () => void;
 }
 
 const tabs = [
@@ -19,6 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onViewChange,
   onCalcOpen,
+  syncStatus = 'online',
+  onSyncNow,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -46,14 +52,32 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={onCalcOpen}
-          className={`rounded-full border border-[#E2DCD0] bg-white p-2.5 text-[#4A3B32] shadow-sm md:hidden ${interactionMotion.subtleButton}`}
-          aria-label="開啟計算機"
-        >
-          <Calculator size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onSyncNow && (
+            <button
+              type="button"
+              onClick={onSyncNow}
+              disabled={syncStatus === 'syncing'}
+              className={`rounded-full border border-[#E2DCD0] bg-white p-2.5 shadow-sm md:hidden ${interactionMotion.subtleButton} ${
+                syncStatus === 'offline' ? 'border-red-300 bg-red-50' : ''
+              } ${syncStatus === 'synced' ? 'border-green-300 bg-green-50' : ''}`}
+              aria-label="同步資料"
+            >
+              {syncStatus === 'offline' && <CloudOff size={20} className="text-red-500" />}
+              {syncStatus === 'syncing' && <Loader2 size={20} className="animate-spin text-[#8C7A6B]" />}
+              {syncStatus === 'synced' && <CheckCircle2 size={20} className="text-green-600" />}
+              {syncStatus === 'online' && <Upload size={20} className="text-[#4A3B32]" />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onCalcOpen}
+            className={`rounded-full border border-[#E2DCD0] bg-white p-2.5 text-[#4A3B32] shadow-sm md:hidden ${interactionMotion.subtleButton}`}
+            aria-label="開啟計算機"
+          >
+            <Calculator size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="relative flex w-full items-center md:w-auto">
@@ -97,7 +121,26 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      <div className="hidden items-center md:flex">
+      <div className="hidden items-center gap-3 md:flex">
+        {onSyncNow && (
+          <button
+            type="button"
+            onClick={onSyncNow}
+            disabled={syncStatus === 'syncing'}
+            className={`flex items-center rounded-full border px-5 py-3 font-bold shadow-sm hover:shadow-md ${interactionMotion.button} ${
+              syncStatus === 'offline'
+                ? 'border-red-300 bg-red-50 text-red-600'
+                : syncStatus === 'synced'
+                  ? 'border-green-300 bg-green-50 text-green-700'
+                  : 'border-[#E2DCD0] bg-white text-[#4A3B32]'
+            }`}
+          >
+            {syncStatus === 'offline' && <><CloudOff size={20} className="mr-2" /> 離線</>}
+            {syncStatus === 'syncing' && <><Loader2 size={20} className="mr-2 animate-spin" /> 同步中...</>}
+            {syncStatus === 'synced' && <><CheckCircle2 size={20} className="mr-2" /> 已同步</>}
+            {syncStatus === 'online' && <><Upload size={20} className="mr-2 text-[#C75D4E]" /> 同步資料</>}
+          </button>
+        )}
         <button
           type="button"
           onClick={onCalcOpen}
