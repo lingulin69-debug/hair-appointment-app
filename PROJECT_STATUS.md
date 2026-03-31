@@ -1,52 +1,90 @@
-# H.SALON 專案狀態紀錄
+# AMY.SALON 專案狀態紀錄
 
-最後更新：2026-03-29
+最後更新：2025-07-15
 
 ## 1. 專案簡述
 
-本專案為「H.SALON 美髮院管理系統」，一個用於管理預約、客戶資料與排班的網頁應用程式。
+本專案為「AMY.SALON 美髮院管理系統」，用於管理預約、客戶資料、服務項目與排班的網頁應用程式。
 
 - **前端技術棧**：React (with Hooks), TypeScript, Vite
-- **UI/樣式**：Tailwind CSS
-- **後端與資料庫**：Firebase / Firestore
+- **UI/樣式**：Tailwind CSS（暖色奶油/棕色調）
+- **後端與資料庫**：Firebase / Firestore（含離線持久化）
+- **部署**：Vercel（自動部署）
+- **原始碼**：GitHub `https://github.com/lingulin69-debug/hair-appointment-app.git`
+- **線上網址**：`https://hair-appointment-app-nine.vercel.app`
 
-## 2. 目前已完成
+## 2. 目前已完成功能
 
-- **應用程式可正常啟動**：已解決啟動時的阻斷性錯誤。
-- **核心 Hooks 功能修復**：
-  - `useAppointments.ts` 的 `ReferenceError: COL is not defined` 錯誤已修正。
-  - `useClients.ts` 與 `useLeaves.ts` 已同步重構，改為使用標準 Firestore SDK。
-- **動畫規範已建立**：
-  - 已建立 `src/hooks/useModalAnimation.ts`，統一管理 Modal 掛載與退場時機。
-  - 已建立 `src/styles/modalAnimation.ts`，集中管理 Modal / Backdrop 動畫 class。
-- **主要 Modal 動畫已接入**：
-  - `CalculatorModal`、`ClientForm`、`ItemModal` 已改用共用動畫邏輯。
-- **主要元件已建立**：專案已具備以下主要 UI 元件的檔案結構（具體功能與樣式仍在開發中）：
-  - Navbar
-  - Calendar (核心功能)
-  - ClientList
-  - ServiceList
-  - Dashboard
-  - AppointmentModal (新增/編輯預約)
-  - ClientModal (新增/編輯客戶)
-  - ItemModal (服務項目管理)
-  - CalculatorModal
-  - MonthYearPickerModal
+### 核心功能
+- **日曆預約管理**：新增、檢視、刪除預約
+- **顧客管理**：新增、編輯、刪除顧客，含電話撥打功能
+- **服務與商品管理**：新增、編輯、刪除服務項目與產品
+- **預約統計 Dashboard**：顯示預約總數、不重複顧客數
 
-## 3. 已修正問題
+### UI/UX 功能
+- **Modal 動畫系統**：統一的 Modal 進入/退出動畫（useModalAnimation hook）
+- **計算機功能**：內建計算機 Modal
+- **月份/年份選擇器**：快速切換日曆月份
+- **預約詳情 Modal**：含兩步驟確認刪除按鈕
+- **所有 Modal 手機滑動支援**：各 Modal 面板加入 `overflow-y-auto`
+- **捲動提示指標**：
+  - Modal 內容向下捲動指標（彈跳箭頭）
+  - 導覽列標籤左右捲動指標（脈衝動畫箭頭）
+  - 主內容區向下捲動指標
 
-- **[錯誤] `ReferenceError: COL is not defined`**：
-  - 此錯誤導致 App 無法啟動，原因是 `useAppointments.ts` 試圖使用一個未定義的 `COL` 變數。
-  - 已將其修正，並為 collection 指定了正確的名稱 "appointments"。
+### 資料與效能
+- **Firebase 離線持久化**：使用 `persistentLocalCache` + `persistentMultipleTabManager`
+- **localStorage 快取**：預約、服務項目、顧客資料本地快取，首次之後秒開
+- **同步資料按鈕**：手動確認所有資料已上傳至 Firebase（顯示 線上/同步中/已同步/離線 狀態）
+- **懶載入**：ClientList、ServiceList、Dashboard 使用 `React.lazy` + `Suspense`
 
-- **[重構] Hooks 資料層抽象不一致**：
-  - 原專案中 `useClients` 和 `useLeaves` 內部定義了 `COL` 常數，但 `useAppointments` 遺漏，導致錯誤。
-  - 為統一寫法並符合 Firebase 最佳實踐，已將 `useAppointments`, `useClients`, `useLeaves` 三個 hooks 全面重構，移除對 `useFirebase.ts` 抽象層的依賴，改為直接呼叫 Firestore SDK (`collection`, `onSnapshot`, `addDoc` 等)。
-  - 所有 Firestore 路徑生成均統一使用 `src/config/firebase.ts` 中提供的 `colPath` 輔助函數，確保資料庫路徑結構一致性。
+## 3. 已修正問題（歷史記錄）
 
-- **[錯誤] `useAppointments.ts` 缺少函式實作**：
-  - `updateAppointment` 內呼叫的 `calcTotalPrice` 函式未定義。
-  - 已根據上下文加入一個臨時的 placeholder 實作，使 hook 能夠正常運作，避免了潛在的執行錯誤。
+### Firebase 相關
+- **[修正] Firebase 400 Bad Request**：`MESSAGING_SENDER_ID` 少了前綴 `2`（35593383196 → 235593383196）
+- **[修正] Firebase 手機端無法同步**：需將 Vercel 部署域名加入 Firebase Authorized Domains
+- **[修正] Vercel 環境變數遺失**：重新設定 6 個 Firebase 環境變數
+
+### Modal 自動關閉
+- **[修正] 所有 Modal 儲存後不自動關閉**：
+  - 改用 `try-finally` 結構，驗證通過後無論 Firebase 結果如何都關閉 Modal
+  - 新增 `isSaving` 狀態防止重複點擊
+  - 修正 `tempPrice` 未加入 `useCallback` 依賴陣列的 bug
+
+### UI 問題
+- **[修正] 手機版 Modal 底部按鈕被截斷**：所有 Modal 面板加入 `overflow-y-auto`
+- **[修正] Navbar JSX 結構錯誤**：修正缺少的 `</div>` 關閉標籤
+- **[修正] `.gitignore` 編碼問題**：PowerShell `echo >>` 產生錯誤編碼，改用 `[System.IO.File]::WriteAllText()`
+
+### 資料層重構
+- **[修正] `ReferenceError: COL is not defined`**：`useAppointments.ts` 缺少 `COL` 變數定義
+- **[重構] Hooks 資料層統一**：所有 hooks 改為直接使用 Firestore SDK，路徑統一使用 `colPath`
+- **[修正] `calcTotalPrice` 函式未定義**：加入正確實作
+
+## 4. 品牌與部署
+
+- **網站名稱**：AMY.SALON（從 H.SALON 改名）
+- **Open Graph 標籤**：已加入社群分享預覽（og:title, og:description, og:url）
+- **Dashboard**：已移除「平均客單」統計卡，改為 2 欄格線
+
+## 5. 檔案結構重點
+
+```
+src/
+  hooks/
+    useAppointments.ts  — 預約 CRUD + 快取
+    useClients.ts       — 顧客 CRUD + 快取
+    useStoreItems.ts    — 服務/商品 CRUD + 快取
+    useLeaves.ts        — 休假管理
+    useSync.ts          — 手動同步 + 連線狀態
+    useModalAnimation.ts — Modal 動畫控制
+  config/
+    firebase.ts         — Firebase 初始化 + 離線持久化
+  utils/
+    cache.ts            — localStorage 快取層
+    performance.ts      — 效能計時工具
+    schedule.ts         — 日期範圍工具
+```
 
 - **[修復] 預覽版日曆未顯示**：
   - 問題主因是 `src/components/Calendar/Calendar.tsx` 內容被 placeholder 取代，實際上沒有渲染完整月曆格線與日期內容。
