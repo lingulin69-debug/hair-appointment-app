@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { CalendarRange, TrendingUp, Users } from 'lucide-react';
+import { CalendarRange, Users } from 'lucide-react';
 import { formatDateString } from '../../utils/schedule';
 
 export type DashboardPeriod = '7d' | '30d' | '6m' | '1y';
@@ -73,20 +73,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const summary = useMemo(() => {
     const totalAppointments = appointments.length;
-    const totalRevenue = appointments.reduce(
-      (sum, appointment) => sum + (appointment.amount || 0),
-      0
-    );
     const uniqueCustomers = new Set(
       appointments.map((appointment) => appointment.customerName.trim()).filter(Boolean)
     ).size;
-    const averageTicket =
-      totalAppointments > 0 ? Math.round(totalRevenue / totalAppointments) : 0;
-
     return {
       totalAppointments,
       uniqueCustomers,
-      averageTicket,
     };
   }, [appointments]);
 
@@ -124,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               預約與客流概況
             </h1>
             <p className="mt-2 text-sm text-[#7A6B5D]">
-              依區間查看預約量、來客人數與平均客單。
+              依區間查看預約量與來客人數。
             </p>
           </div>
 
@@ -150,7 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <StatCard
             icon={<CalendarRange className="h-5 w-5" />}
             title="預約總數"
@@ -161,11 +153,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             title="來客人數"
             value={`${summary.uniqueCustomers}`}
           />
-          <StatCard
-            icon={<TrendingUp className="h-5 w-5" />}
-            title="平均客單"
-            value={`NT$ ${summary.averageTicket.toLocaleString()}`}
-          />
+
         </div>
 
         <div className="rounded-[28px] border border-[#E3DACD] bg-white p-5 shadow-[0_16px_36px_rgba(74,59,50,0.05)] md:p-6">
