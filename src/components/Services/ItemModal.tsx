@@ -78,7 +78,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.compactPanel} flex w-full max-w-sm flex-col p-8 md:p-10 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.compactPanel} flex w-full max-w-sm flex-col overflow-y-auto p-8 md:p-10 ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >

@@ -71,7 +71,7 @@ export default function ClientForm({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} flex w-full max-w-lg flex-col p-8 md:p-12 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} flex w-full max-w-lg flex-col overflow-y-auto p-8 md:p-12 ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >

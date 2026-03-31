@@ -195,7 +195,7 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
         onClick={onClose}
       />
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} ${modalAnimation.base} flex max-w-lg flex-col p-8 md:p-12 ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} ${modalAnimation.base} flex max-w-lg flex-col overflow-y-auto p-8 md:p-12 ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >
