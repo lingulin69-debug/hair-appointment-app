@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AMY.SALON 備份匯入工具</title>
+    <meta
+      name="description"
+      content="AMY.SALON 一次性備份匯入工具，可在 PC 端上傳備份 JSON 並回寫 Firebase。"
+    />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
+
+      :root {
+        color-scheme: light;
+        --bg: #ebe1d4;
+        --paper: rgba(255, 251, 244, 0.92);
+        --ink: #43352d;
+        --muted: #7f6d60;
+        --line: rgba(67, 53, 45, 0.12);
+        --accent: #4d3b31;
+        --accent-soft: #f5ede1;
+        --good: #355f46;
+        --warn: #8b5c2b;
+        --danger: #8d4035;
+        --shadow: 0 18px 54px rgba(67, 53, 45, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Noto Serif TC', serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.58), transparent 35%),
+          radial-gradient(circle at bottom right, rgba(219, 197, 169, 0.54), transparent 32%),
+          linear-gradient(180deg, #f4ebdf 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(1080px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 24px 0 40px;
+      }
+
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero,
+      .section {
+        padding: 28px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(30px, 5vw, 46px);
+        line-height: 1.08;
+        letter-spacing: 0.06em;
+      }
+
+      h2 {
+        font-size: 24px;
+        letter-spacing: 0.06em;
+      }
+
+      h3 {
+        font-size: 19px;
+        letter-spacing: 0.08em;
+      }
+
+      p,
+      li,
+      label,
+      textarea,
+      input,
+      button {
+        font: inherit;
+      }
+
+      .lead,
+      .muted,
+      .section li,
+      .status,
+      .hint {
+        font-size: 17px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .lead {
+        margin: 14px 0 0;
+        max-width: 860px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      input[type='file'],
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--ink);
+      }
+
+      input[type='file'] {
+        padding: 16px;
+      }
+
+      textarea {
+        min-height: 180px;
+        padding: 16px;
+        resize: vertical;
+        line-height: 1.7;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 15px 22px;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        transition: transform 180ms ease, opacity 180ms ease, background-color 180ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fffaf2;
+      }
+
+      .secondary {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .status,
+      .note,
+      .collection-card,
+      .summary-card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .status,
+      .note {
+        padding: 16px 18px;
+      }
+
+      .good {
+        color: var(--good);
+      }
+
+      .warn {
+        color: var(--warn);
+      }
+
+      .danger {
+        color: var(--danger);
+      }
+
+      .summary-grid,
+      .collections-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .summary-card,
+      .collection-card {
+        padding: 18px;
+      }
+
+      .summary-card span,
+      .collection-meta {
+        display: block;
+      }
+
+      .summary-label {
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .summary-value {
+        font-size: 32px;
+        font-weight: 900;
+      }
+
+      .collection-card {
+        display: grid;
+        gap: 8px;
+      }
+
+      .collection-meta {
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .log {
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      .log li {
+        color: var(--ink);
+      }
+
+      .section + .section {
+        margin-top: 18px;
+      }
+
+      @media (max-width: 900px) {
+        .grid,
+        .summary-grid,
+        .collections-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          width: min(100vw - 18px, 1080px);
+          padding-top: 10px;
+        }
+
+        .hero,
+        .section {
+          padding: 18px;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel hero">
+        <p class="eyebrow">AMY.SALON ONE-TIME RESTORE</p>
+        <h1>備份匯入工具</h1>
+        <p class="lead">
+          這個頁面只給 PC 端一次性使用。先上傳剛剛救回來的備份 JSON，確認筆數後，再按一次把資料回寫到 Firebase。
+          這個工具只會 upsert 備份裡的資料，不會主動刪除雲端現有資料。
+        </p>
+        <div id="status" class="status">
+          <strong>尚未載入備份。</strong> 先選擇 JSON 檔或貼上備份內容，再按「讀取備份」。
+        </div>
+      </section>
+
+      <section class="panel section">
+        <h2>第一步：載入備份</h2>
+        <div class="grid">
+          <div class="stack">
+            <div>
+              <label class="field-label" for="backup-file">上傳備份檔</label>
+              <input id="backup-file" type="file" accept=".json,.md,.txt" />
+            </div>
+            <div>
+              <label class="field-label" for="backup-text">或貼上備份內容</label>
+              <textarea
+                id="backup-text"
+                spellcheck="false"
+                placeholder="如果你手上只有文字內容，也可以直接貼在這裡。"
+              ></textarea>
+            </div>
+            <div class="actions">
+              <button id="load-btn" class="secondary" type="button">讀取備份</button>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="note">
+              <strong>匯入規則</strong>
+              <ul>
+                <li>優先使用 localStorage.merged 的資料。</li>
+                <li>如果某個集合 localStorage.merged 為空，才退回使用 firestoreCache。</li>
+                <li>同一個 ID 若出現重複，只保留一份。</li>
+              </ul>
+            </div>
+            <div class="note">
+              <strong>這一版會回寫</strong>
+              <ul>
+                <li>clients</li>
+                <li>appointments</li>
+                <li>leaves</li>
+                <li>storeItems</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel section">
+        <h2>第二步：確認匯入摘要</h2>
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">CLIENTS</span>
+            <span id="summary-clients" class="summary-value">0</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">APPOINTMENTS</span>
+            <span id="summary-appointments" class="summary-value">0</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">LEAVES</span>
+            <span id="summary-leaves" class="summary-value">0</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">STORE ITEMS</span>
+            <span id="summary-storeItems" class="summary-value">0</span>
+          </article>
+        </div>
+
+        <div class="collections-grid" id="collections-grid"></div>
+
+        <div class="stack">
+          <div class="actions">
+            <button id="import-btn" class="primary" type="button" disabled>開始匯入 Firebase</button>
+          </div>
+          <div class="note">
+            <strong>匯入紀錄</strong>
+            <ol id="import-log" class="log">
+              <li>尚未開始。</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/importer.ts"></script>
+  </body>
+</html>

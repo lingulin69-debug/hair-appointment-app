@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AMY.SALON 本地資料備份</title>
+    <meta
+      name="description"
+      content="AMY.SALON 本地資料備份工具，只讀取手機瀏覽器本地快取並下載 JSON 備份。"
+    />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
+
+      :root {
+        color-scheme: light;
+        --bg: #efe7da;
+        --paper: rgba(255, 252, 245, 0.9);
+        --ink: #493a31;
+        --muted: #7f6f61;
+        --line: rgba(73, 58, 49, 0.14);
+        --accent: #4a3b32;
+        --accent-soft: #f4ece1;
+        --warn: #8b5c2b;
+        --good: #355f46;
+        --shadow: 0 20px 60px rgba(73, 58, 49, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Noto Serif TC', serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 38%),
+          radial-gradient(circle at bottom right, rgba(212, 193, 171, 0.55), transparent 32%),
+          linear-gradient(180deg, #f3ebdf 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(960px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 24px 0 40px;
+      }
+
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero {
+        padding: 28px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 7vw, 48px);
+        line-height: 1.08;
+        letter-spacing: 0.08em;
+      }
+
+      .lead {
+        margin: 14px 0 0;
+        max-width: 760px;
+        font-size: 18px;
+        line-height: 1.95;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .card {
+        padding: 22px;
+      }
+
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+      }
+
+      .card p,
+      .card li {
+        font-size: 18px;
+        line-height: 1.95;
+        color: var(--muted);
+      }
+
+      .card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .step-list {
+        display: grid;
+        gap: 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .step-item {
+        padding: 16px 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(73, 58, 49, 0.1);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .step-title {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: var(--ink);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 16px 24px;
+        font: inherit;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        transition: transform 180ms ease, opacity 180ms ease, background-color 180ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fffaf2;
+      }
+
+      .secondary {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .status {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.56);
+        font-size: 18px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .status strong {
+        color: var(--ink);
+      }
+
+      .good {
+        color: var(--good);
+      }
+
+      .warn {
+        color: var(--warn);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .stat {
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .stat-label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .stat-value {
+        font-size: 34px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+
+      .details {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid var(--line);
+        background: rgba(74, 59, 50, 0.04);
+      }
+
+      .backup-panel {
+        margin-top: 18px;
+      }
+
+      .backup-help {
+        margin: 10px 0 0;
+        font-size: 17px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .backup-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .backup-text {
+        width: 100%;
+        min-height: 280px;
+        margin-top: 16px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--ink);
+        resize: vertical;
+      }
+
+      .chunk-summary {
+        margin: 18px 0 0;
+        font-size: 17px;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      .chunk-list {
+        display: grid;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .chunk-card {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .chunk-title {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.08em;
+      }
+
+      .chunk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .chunk-meta {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .chunk-text {
+        min-height: 180px;
+      }
+
+      .details h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+        letter-spacing: 0.12em;
+      }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--ink);
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          width: min(100vw - 18px, 960px);
+          padding-top: 10px;
+        }
+
+        .hero,
+        .card {
+          padding: 18px;
+        }
+
+        .grid,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel hero">
+        <p class="eyebrow">AMY.SALON LOCAL BACKUP</p>
+        <h1>本地資料備份</h1>
+        <p class="lead">
+          這個頁面是幫您把手機裡原本的資料先備份起來。
+          不會刪掉資料，也不會叫您重新輸入。請用平常查看預約的那支手機和同一個瀏覽器打開。
+        </p>
+
+        <div class="actions">
+          <button id="scan-btn" class="secondary" type="button">掃描本地資料</button>
+          <button id="export-btn" class="primary" type="button">掃描並產生備份</button>
+        </div>
+
+        <div id="status" class="status">
+          <strong>尚未掃描。</strong> 建議先按一次掃描，確認資料數量後再下載備份。
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">LOCAL KEYS</span>
+            <span id="stat-keys" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">CLIENTS</span>
+            <span id="stat-clients" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">APPOINTMENTS</span>
+            <span id="stat-appointments" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">LEAVES</span>
+            <span id="stat-leaves" class="stat-value">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel card">
+          <h2>請照這樣做</h2>
+          <ol class="step-list">
+            <li class="step-item">
+              <span class="step-title">第一步：先打開這個頁面</span>
+              請用平常看得到資料的那支手機，還有平常使用的那個瀏覽器，打開這個頁面。
+            </li>
+            <li class="step-item">
+              <span class="step-title">第二步：先按掃描本地資料</span>
+              看到畫面後，先按一次「掃描本地資料」，稍微等一下下。
+            </li>
+            <li class="step-item">
+              <span class="step-title">第三步：看看有沒有出現數量</span>
+              請看看畫面上有沒有出現顧客和預約的數量。如果有看到，就表示有抓到資料。
+            </li>
+            <li class="step-item">
+              <span class="step-title">第四步：下載備份</span>
+              接著按「掃描並產生備份」。如果手機跳出下載或儲存提示，請按同意；如果沒有下載提示，請直接用下方的複製按鈕把備份先存起來。
+            </li>
+            <li class="step-item">
+              <span class="step-title">第五步：先不要再修改資料</span>
+              下載完成前，先不要回首頁新增或修改資料。做完後再告訴我們就可以。
+            </li>
+          </ol>
+        </article>
+
+        <article class="panel card">
+          <h2>抓取來源</h2>
+          <ul>
+            <li>localStorage 中 hair-salon: 開頭的快取鍵。</li>
+            <li>Firestore 離線快取中 clients、appointments、leaves、storeItems 集合。</li>
+            <li>若只有 localStorage 有資料，也會照樣匯出。</li>
+            <li>若 Firestore cache 有資料，也會一起包進備份。</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="panel details">
+        <h3>掃描摘要</h3>
+        <pre id="details">尚未掃描。</pre>
+      </section>
+
+      <section id="backup-panel" class="panel details backup-panel" hidden>
+        <h3>下載失敗時請用這個備援</h3>
+        <p id="backup-hint" class="backup-help">
+          如果手機沒有跳出下載提示，請直接按「複製備份內容」，把下方 JSON 貼到 LINE 聊天室、記事本或 Email 先存起來。
+        </p>
+        <div class="backup-actions">
+          <button id="copy-btn" class="primary" type="button">複製備份內容</button>
+          <button id="share-btn" class="secondary" type="button">分享備份</button>
+        </div>
+        <p id="chunk-summary" class="chunk-summary"></p>
+        <div id="chunk-list" class="chunk-list"></div>
+        <textarea
+          id="backup-text"
+          class="backup-text"
+          readonly
+          spellcheck="false"
+          aria-label="備份 JSON 內容"
+        ></textarea>
+      </section>
+    </main>
+
+    <script type="module" src="/src/recovery.ts"></script>
+  </body>
+</html>
