@@ -75,6 +75,8 @@ export const ClientList: React.FC<ClientListProps> = ({
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7A6B5D]" />
             <input
+              id="client-search"
+              name="clientSearch"
               type="text"
               placeholder="搜尋姓名或電話"
               value={searchQuery}

@@ -418,6 +418,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <label className="grid gap-2 text-sm font-semibold text-[#6F6257]">
                     日期
                     <input
+                      id="revenue-entry-date"
+                      name="revenueEntryDate"
                       type="date"
                       value={entryDate}
                       onChange={(event) => setEntryDate(event.target.value)}
@@ -451,6 +453,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <label className="grid gap-2 text-sm font-semibold text-[#6F6257]">
                     金額
                     <input
+                      id="revenue-entry-amount"
+                      name="revenueEntryAmount"
                       type="number"
                       min="0"
                       inputMode="decimal"
@@ -464,6 +468,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <label className="grid gap-2 text-sm font-semibold text-[#6F6257]">
                     分類
                     <input
+                      id="revenue-entry-category"
+                      name="revenueEntryCategory"
                       type="text"
                       value={entryCategory}
                       onChange={(event) => setEntryCategory(event.target.value)}
@@ -475,6 +481,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <label className="grid gap-2 text-sm font-semibold text-[#6F6257] md:col-span-2">
                     備註
                     <textarea
+                      id="revenue-entry-note"
+                      name="revenueEntryNote"
                       value={entryNote}
                       onChange={(event) => setEntryNote(event.target.value)}
                       placeholder="例如 染膏補貨、產品現金販售"
