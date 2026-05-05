@@ -272,6 +272,23 @@ src/
   - `src/hooks/useStoreItems.ts`
   - `src/hooks/useLeaves.ts`
 
+## 17. 2026-05-05 GitHub / Vercel 部署紀錄
+
+- **本次上傳 Git 已完成**：已推送到 GitHub 遠端 `origin/master`。
+- **部署版本資訊**：commit SHA 為 `55f9384bcc107c3d82c2f0caa960adbff53e69ba`；commit 訊息為 `feat: add revenue dashboard and refine schedule layout`。
+- **本輪主要變更**：
+  - 預約統計頁新增「收入」頁籤，可同時看預約收入、手動加帳、手動扣帳、每日結餘與每月結算。
+  - 商品/服務儲存流程已修正 Firestore 可選欄位寫入，避免空色碼造成儲存失敗。
+  - 多日排程 normal 模式格高已放大，30 分鐘預約卡顯示更完整。
+  - Tailwind 已改為正式編譯流程，不再依賴瀏覽器端 CDN。
+- **部署與驗證結果**：
+  - `npm run build`：通過。
+  - Vercel production：部署成功。
+  - Production deployment URL：`https://hair-appointment-dluo7rxjv-lingulin69-4776s-projects.vercel.app`
+  - 正式網址 alias：`https://hair-appointment-app-nine.vercel.app`
+  - 外部讀取檢查：正式網址首頁可正常開啟。
+- **備註**：後續若需追查本次上線內容，請以 commit `55f9384` 為基準回看 GitHub 與 Vercel deployment 紀錄。
+
 ## 16. 2026-03-29 待辦優化清單
 
 - **語系統一**：
