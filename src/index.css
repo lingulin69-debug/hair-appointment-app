@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background-color: #ebe6dc;
+}
+
+.force-serif * {
+	font-family: 'Noto Serif TC', serif !important;
+	letter-spacing: 0.05em;
+}
+
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(74, 59, 50, 0.2);
+	border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+	width: 4px;
+}
+
+.custom-scrollbar {
+	scrollbar-gutter: stable;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+	display: none;
+}

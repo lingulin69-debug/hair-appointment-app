@@ -7,6 +7,7 @@ import { useClients } from './hooks/useClients';
 import { useLeaves } from './hooks/useLeaves';
 import { useStoreItems } from './hooks/useStoreItems';
 import { useSync } from './hooks/useSync';
+import { useRevenues } from './hooks/useRevenues';
 import { NewApptModal } from './components/Calendar/NewApptModal';
 import { AppointmentDetailModal } from './components/Calendar/AppointmentDetailModal';
 import ClientForm from './components/Client/ClientForm';
@@ -106,6 +107,7 @@ export default function App() {
     shouldLoadCalendarData || currentView === 'dashboard' || isApptDetailOpen;
   const shouldLoadStoreItems =
     currentView === 'calendar' || currentView === 'services' || isItemModalOpen || isNewApptModalOpen;
+  const shouldLoadRevenues = currentView === 'dashboard';
   const shouldLoadClients =
     currentView === 'clients' ||
     isClientDetailOpen ||
@@ -166,6 +168,12 @@ export default function App() {
     range: calendarDateRange,
   });
   const { status: syncStatus, syncNow } = useSync();
+  const {
+    revenues,
+    addRevenue,
+    deleteRevenue,
+    isLoading: isRevenuesLoading,
+  } = useRevenues({ enabled: shouldLoadRevenues, range: dashboardDateRange });
 
   const defaultService = serviceItems[0] ?? null;
   const safeClients = useMemo(
@@ -628,15 +636,11 @@ export default function App() {
 
             {currentView === 'dashboard' && (
               <Dashboard
-                appointments={appointments.map((appointment) => ({
-                  id: appointment.id,
-                  date: appointment.dateStr,
-                  time: appointment.time,
-                  customerName: appointment.clientName,
-                  service: appointment.service,
-                  amount: appointment.totalPrice,
-                  status: appointment.status,
-                }))}
+                appointments={appointments}
+                revenues={revenues}
+                isRevenueLoading={isRevenuesLoading}
+                onAddRevenue={addRevenue}
+                onDeleteRevenue={deleteRevenue}
                 period={dashboardPeriod}
                 onPeriodChange={setDashboardPeriod}
               />

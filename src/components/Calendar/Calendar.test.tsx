@@ -25,7 +25,7 @@ const storeItems: StoreItem[] = [
     id: 'service-1',
     name: '洗剪',
     price: 1200,
-    duration: '60',
+    duration: '30',
     type: 'service',
   },
 ];
@@ -89,6 +89,9 @@ describe('Calendar', () => {
     expect(
       screen.getByRole('button', { name: '2099-03-29 10:00 Alice 洗剪' })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '2099-03-29 10:00 Alice 洗剪' })
+    ).toHaveStyle({ height: '68px' });
     expect(screen.queryByText('時間')).not.toBeInTheDocument();
     expect(screen.queryByText('10:00-10:30')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '月曆' }).length).toBeGreaterThan(0);

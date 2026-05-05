@@ -39,12 +39,20 @@ export interface Client {
 }
 
 export type RevenueCategory = string;
+export type RevenueKind = 'income' | 'expense';
+export type RevenueSource = 'manual' | 'appointment';
 
 export interface Revenue {
   id: string;
   amount: number;
   date: string;
   category: RevenueCategory;
+  kind: RevenueKind;
+  source?: RevenueSource;
+  note?: string;
+  linkedAppointmentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type LeaveType = string;

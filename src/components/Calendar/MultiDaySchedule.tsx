@@ -27,7 +27,7 @@ const DENSITY_CONFIG: Record<
   { columnWidth: number; rowHeight: number; blockPadding: number }
 > = {
   compact: { columnWidth: 88, rowHeight: 28, blockPadding: 4 },
-  normal: { columnWidth: 112, rowHeight: 36, blockPadding: 6 },
+  normal: { columnWidth: 112, rowHeight: 72, blockPadding: 6 },
   focus: { columnWidth: 140, rowHeight: 48, blockPadding: 8 },
 };
 function formatClock(totalMinutes: number): string {

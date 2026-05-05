@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   addDoc,
   collection,
+  deleteField,
   deleteDoc,
   doc,
   getDocs,
+  type UpdateData,
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
@@ -51,14 +53,76 @@ function cloneDefaultStoreItems(): StoreItem[] {
 const STORE_ITEMS_CACHE_KEY = 'store-items';
 const STORE_ITEMS_CACHE_VERSION = 1;
 
+function normalizeStoreItemColor(value: string | undefined): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmedValue) ? trimmedValue : undefined;
+}
+
+function createStoreItemPayload(data: Omit<StoreItem, 'id'>): Omit<StoreItem, 'id'> {
+  const color = normalizeStoreItemColor(data.color);
+
+  return {
+    name: data.name.trim(),
+    price: data.price,
+    duration: data.duration.trim() || '-',
+    type: data.type,
+    ...(color && { color }),
+  };
+}
+
+function createStoreItemUpdatePayload(data: Partial<Omit<StoreItem, 'id'>>): {
+  firestorePatch: UpdateData<StoreItem>;
+  localPatch: Partial<Omit<StoreItem, 'id'>>;
+} {
+  const firestorePatch: UpdateData<StoreItem> = {};
+  const localPatch: Partial<Omit<StoreItem, 'id'>> = {};
+
+  if (typeof data.name === 'string') {
+    const name = data.name.trim();
+    firestorePatch.name = name;
+    localPatch.name = name;
+  }
+
+  if (typeof data.price === 'number') {
+    firestorePatch.price = data.price;
+    localPatch.price = data.price;
+  }
+
+  if (typeof data.duration === 'string') {
+    const duration = data.duration.trim() || '-';
+    firestorePatch.duration = duration;
+    localPatch.duration = duration;
+  }
+
+  if (data.type === 'service' || data.type === 'product') {
+    firestorePatch.type = data.type;
+    localPatch.type = data.type;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(data, 'color')) {
+    const color = normalizeStoreItemColor(data.color);
+
+    if (color) {
+      firestorePatch.color = color;
+      localPatch.color = color;
+    } else {
+      firestorePatch.color = deleteField();
+      localPatch.color = undefined;
+    }
+  }
+
+  return { firestorePatch, localPatch };
+}
+
 function sanitizeStoreItem(item: Partial<StoreItem>, id: string): StoreItem {
   const parsedPrice =
     typeof item.price === 'number' ? item.price : Number(item.price ?? 0);
 
-  const color =
-    typeof item.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(item.color.trim())
-      ? item.color.trim()
-      : undefined;
+  const color = normalizeStoreItemColor(item.color);
 
   return {
     id,
@@ -195,12 +259,9 @@ export function useStoreItems({ enabled = true }: UseStoreItemsOptions = {}) {
 
   async function addStoreItem(data: Omit<StoreItem, 'id'>): Promise<string | null> {
     try {
-      const docRef = await addDoc(storeItemsRef.current, {
-        ...data,
-        name: data.name.trim(),
-        duration: data.duration.trim() || '-',
-      });
-      const nextItem = sanitizeStoreItem(data, docRef.id);
+      const payload = createStoreItemPayload(data);
+      const docRef = await addDoc(storeItemsRef.current, payload);
+      const nextItem = sanitizeStoreItem(payload, docRef.id);
       setStoreItems((current) => sortStoreItems([...current, nextItem]));
       return docRef.id;
     } catch (error) {
@@ -213,19 +274,15 @@ export function useStoreItems({ enabled = true }: UseStoreItemsOptions = {}) {
     id: string,
     data: Partial<Omit<StoreItem, 'id'>>
   ): Promise<boolean> {
-    const patch = {
-      ...data,
-      name: data.name?.trim() ?? data.name,
-      duration: data.duration?.trim() || data.duration,
-    };
+    const { firestorePatch, localPatch } = createStoreItemUpdatePayload(data);
 
     try {
       const docRef = doc(db, colPath('storeItems'), id);
-      await updateDoc(docRef, patch);
+      await updateDoc(docRef, firestorePatch);
       setStoreItems((current) =>
         sortStoreItems(
           current.map((item) =>
-            item.id === id ? sanitizeStoreItem({ ...item, ...patch }, id) : item
+            item.id === id ? sanitizeStoreItem({ ...item, ...localPatch }, id) : item
           )
         )
       );
