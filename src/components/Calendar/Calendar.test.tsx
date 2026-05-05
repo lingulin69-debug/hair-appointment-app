@@ -83,7 +83,7 @@ describe('Calendar', () => {
     fireEvent.click(screen.getAllByRole('button', { name: '多日排程' })[0]);
 
     expect(
-      screen.getByText(/整月可左右拖動日期、上下瀏覽 10:00-24:00 時段。空白格就是可安排空檔。/)
+      screen.getByText(/整月可左右拖動日期、上下瀏覽 08:00-24:00 時段。空白格就是可安排空檔。/)
     ).toBeInTheDocument();
     expect(screen.getByLabelText('日期跳轉')).toBeInTheDocument();
     expect(

@@ -23,6 +23,7 @@ import {
 export type DashboardPeriod = '7d' | '30d' | '6m' | '1y';
 
 type DashboardTab = 'overview' | 'income';
+type RevenueFeedbackTone = 'success' | 'error' | 'info';
 
 interface DashboardProps {
   appointments: Appointment[];
@@ -45,6 +46,12 @@ const TAB_OPTIONS: Array<{ id: DashboardTab; label: string }> = [
   { id: 'overview', label: '概況' },
   { id: 'income', label: '收入' },
 ];
+
+const REVENUE_FEEDBACK_TONE_CLASS: Record<RevenueFeedbackTone, string> = {
+  success: 'border-[#CFE3D7] bg-[#F1F8F3] text-[#355F46]',
+  error: 'border-[#E8C9C2] bg-[#FFF3EE] text-[#A34B3F]',
+  info: 'border-[#E2DCD0] bg-[#FCFAF5] text-[#6F6257]',
+};
 
 function formatDateLabel(dateStr: string, period: DashboardPeriod) {
   const date = new Date(`${dateStr}T00:00:00`);
@@ -125,6 +132,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [entryCategory, setEntryCategory] = useState('其他收入');
   const [entryNote, setEntryNote] = useState('');
   const [isSavingRevenue, setIsSavingRevenue] = useState(false);
+  const [revenueFeedback, setRevenueFeedback] = useState<{
+    tone: RevenueFeedbackTone;
+    message: string;
+  } | null>(null);
 
   const safeAppointments = useMemo(
     () => (Array.isArray(appointments) ? appointments : []),
@@ -187,8 +198,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     () => buildMonthlyRevenueRows(revenueEvents),
     [revenueEvents]
   );
+  const entryAmountNumber = Number(entryAmount);
+  const isRevenueFormValid =
+    Boolean(entryDate) && Number.isFinite(entryAmountNumber) && entryAmountNumber > 0;
+
+  const resetRevenueForm = () => {
+    setEntryAmount('');
+    setEntryCategory(entryKind === 'income' ? '其他收入' : '其他支出');
+    setEntryNote('');
+    setRevenueFeedback(null);
+  };
 
   const handleChangeEntryKind = (kind: RevenueKind) => {
+    setRevenueFeedback(null);
     setEntryKind(kind);
     setEntryCategory((current) =>
       current === '其他收入' || current === '其他支出'
@@ -200,15 +222,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handleAddRevenue = async () => {
-    const amount = Number(entryAmount);
+    const amount = entryAmountNumber;
     const trimmedCategory = entryCategory.trim();
 
     if (!onAddRevenue || isSavingRevenue) {
       return;
     }
 
-    if (!entryDate || Number.isNaN(amount) || amount <= 0) {
-      window.alert('請先填寫正確日期與金額。');
+    if (!isRevenueFormValid) {
+      setRevenueFeedback({ tone: 'error', message: '請先填寫正確日期與金額。' });
       return;
     }
 
@@ -224,13 +246,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
 
       if (!savedId) {
-        window.alert('收入記帳失敗，請稍後再試。');
+        setRevenueFeedback({ tone: 'error', message: '收入記帳失敗，請稍後再試。' });
         return;
       }
 
-      setEntryAmount('');
-      setEntryNote('');
-      setEntryCategory(entryKind === 'income' ? '其他收入' : '其他支出');
+      resetRevenueForm();
+      setRevenueFeedback({
+        tone: 'success',
+        message: entryKind === 'income' ? '已新增加帳紀錄。' : '已新增扣帳紀錄。',
+      });
     } finally {
       setIsSavingRevenue(false);
     }
@@ -248,8 +272,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const deleted = await onDeleteRevenue(entry.id);
     if (!deleted) {
-      window.alert('刪除記帳失敗，請稍後再試。');
+      setRevenueFeedback({ tone: 'error', message: '刪除記帳失敗，請稍後再試。' });
+      return;
     }
+
+    setRevenueFeedback({ tone: 'success', message: '已刪除手動記帳。' });
   };
 
   const maxCount = Math.max(...chartData.map((item) => item.count), 1);
@@ -422,7 +449,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       name="revenueEntryDate"
                       type="date"
                       value={entryDate}
-                      onChange={(event) => setEntryDate(event.target.value)}
+                      onChange={(event) => {
+                        setEntryDate(event.target.value);
+                        setRevenueFeedback(null);
+                      }}
                       className="rounded-2xl border border-[#E2DCD0] bg-[#FCFAF5] px-4 py-3 outline-none focus:border-[#4A3B32]"
                     />
                   </label>
@@ -459,7 +489,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       min="0"
                       inputMode="decimal"
                       value={entryAmount}
-                      onChange={(event) => setEntryAmount(event.target.value)}
+                      onChange={(event) => {
+                        setEntryAmount(event.target.value);
+                        setRevenueFeedback(null);
+                      }}
                       placeholder="例如 1200"
                       className="rounded-2xl border border-[#E2DCD0] bg-[#FCFAF5] px-4 py-3 outline-none focus:border-[#4A3B32]"
                     />
@@ -472,7 +505,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       name="revenueEntryCategory"
                       type="text"
                       value={entryCategory}
-                      onChange={(event) => setEntryCategory(event.target.value)}
+                      onChange={(event) => {
+                        setEntryCategory(event.target.value);
+                        setRevenueFeedback(null);
+                      }}
                       placeholder={entryKind === 'income' ? '例如 產品銷售' : '例如 材料成本'}
                       className="rounded-2xl border border-[#E2DCD0] bg-[#FCFAF5] px-4 py-3 outline-none focus:border-[#4A3B32]"
                     />
@@ -484,7 +520,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       id="revenue-entry-note"
                       name="revenueEntryNote"
                       value={entryNote}
-                      onChange={(event) => setEntryNote(event.target.value)}
+                      onChange={(event) => {
+                        setEntryNote(event.target.value);
+                        setRevenueFeedback(null);
+                      }}
                       placeholder="例如 染膏補貨、產品現金販售"
                       rows={3}
                       className="rounded-2xl border border-[#E2DCD0] bg-[#FCFAF5] px-4 py-3 outline-none focus:border-[#4A3B32]"
@@ -492,15 +531,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </label>
                 </div>
 
-                <div className="mt-5 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleAddRevenue}
-                    disabled={!onAddRevenue || isSavingRevenue}
-                    className="rounded-full bg-[#4A3B32] px-6 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div
+                    aria-live="polite"
+                    className={`rounded-2xl border px-4 py-3 text-sm font-bold ${
+                      revenueFeedback
+                        ? REVENUE_FEEDBACK_TONE_CLASS[revenueFeedback.tone]
+                        : REVENUE_FEEDBACK_TONE_CLASS.info
+                    }`}
                   >
-                    新增記帳
-                  </button>
+                    {revenueFeedback?.message ?? '請先填日期與金額；送出後會直接更新下方結餘。'}
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={resetRevenueForm}
+                      disabled={isSavingRevenue}
+                      className="rounded-full border border-[#E2DCD0] bg-white px-5 py-3 text-sm font-bold text-[#4A3B32] transition hover:bg-[#F4F0EA] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      清空
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddRevenue}
+                      disabled={!onAddRevenue || isSavingRevenue || !isRevenueFormValid}
+                      className="rounded-full bg-[#4A3B32] px-6 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isSavingRevenue ? '儲存中...' : '新增記帳'}
+                    </button>
+                  </div>
                 </div>
               </section>
 

@@ -94,7 +94,7 @@ export default function App() {
   const [selectedDateStr, setSelectedDateStr] = useState('');
   const [tempClientName, setTempClientName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
-  const [tempTime, setTempTime] = useState('10:00');
+  const [tempTime, setTempTime] = useState('');
   const [tempService, setTempService] = useState('');
   const [tempPrice, setTempPrice] = useState(0);
   const [tempPax, setTempPax] = useState(1);
@@ -213,7 +213,7 @@ export default function App() {
   const resetAppointmentDraft = useCallback(() => {
     setTempClientName('');
     setTempPhone('');
-    setTempTime('10:00');
+    setTempTime('');
     setTempService(defaultService?.name ?? '');
     setTempPrice(defaultService?.price ?? 0);
     setTempPax(1);

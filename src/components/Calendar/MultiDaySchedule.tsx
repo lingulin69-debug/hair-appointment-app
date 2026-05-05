@@ -18,7 +18,7 @@ interface MultiDayScheduleProps {
 }
 
 const DAYS_OF_WEEK = ['日', '一', '二', '三', '四', '五', '六'];
-const DISPLAY_START_HOUR = 10;
+const DISPLAY_START_HOUR = 8;
 const DISPLAY_END_HOUR = 24;
 const SLOT_INTERVAL_MINUTES = 30;
 const DEFAULT_DURATION_MINUTES = 60;
@@ -454,7 +454,7 @@ export const MultiDaySchedule: React.FC<MultiDayScheduleProps> = ({
       <div className="relative z-30 overflow-visible rounded-[26px] border border-[#E8E3D8] bg-[#FFFDFC] p-4 shadow-[0_14px_30px_rgba(74,59,50,0.05)] md:p-5">
         <div className="text-xs font-bold tracking-[0.28em] text-[#8C7A6B]">月排程</div>
         <div className="mt-2 text-sm font-semibold text-[#6F6257] md:text-base">
-          整月可左右拖動日期、上下瀏覽 10:00-24:00 時段。空白格就是可安排空檔。
+          整月可左右拖動日期、上下瀏覽 08:00-24:00 時段。空白格就是可安排空檔。
         </div>
 
         <div ref={pickerRef} className="relative z-40 mt-4 flex flex-wrap items-center gap-3">
