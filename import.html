@@ -31,6 +31,43 @@
       </section>
 
       <section class="panel section">
+        <h2>登入與權限</h2>
+        <div class="auth-grid">
+          <div class="stack">
+            <div>
+              <label class="field-label" for="auth-email">登入帳號 / Email</label>
+              <input id="auth-email" type="text" placeholder="alassealin 或 owner@amysalon.local" />
+            </div>
+            <div>
+              <label class="field-label" for="auth-password">密碼</label>
+              <input id="auth-password" type="password" placeholder="輸入密碼" />
+            </div>
+            <div class="actions">
+              <button id="sign-in-btn" class="primary" type="button">登入</button>
+              <button id="sign-out-btn" class="secondary" type="button" disabled>登出</button>
+              <button id="bootstrap-owner-btn" class="secondary" type="button" hidden>
+                將目前帳號設為管理員
+              </button>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div id="auth-status" class="status">
+              <strong>尚未登入。</strong> 匯入工具現在需要先登入。只有管理員可以把資料回寫到 Firebase。
+            </div>
+            <div class="note">
+              <strong>權限規則</strong>
+              <ul>
+                <li>第一個登入並完成 bootstrap 的帳號會成為管理員。</li>
+                <li>owner 可以進主系統後台，但不能操作這個匯入頁。</li>
+                <li>這個匯入工具只開給管理員，staff 與 owner 都不可執行匯入。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel section">
         <h2>第一步：載入備份</h2>
         <div class="grid">
           <div class="stack">

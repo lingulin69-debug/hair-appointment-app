@@ -1,4 +1,5 @@
 import type { Appointment, Revenue } from '../types';
+import { formatDateString } from './schedule';
 
 export type RevenueEvent = {
   id: string;
@@ -29,6 +30,16 @@ export type DailyRevenueRow = {
 
 export type MonthlyRevenueRow = {
   monthKey: string;
+  income: number;
+  expense: number;
+  balance: number;
+  eventCount: number;
+};
+
+export type SettlementRangeRow = {
+  key: string;
+  startDate: string;
+  endDate: string;
   income: number;
   expense: number;
   balance: number;
@@ -177,4 +188,88 @@ export function buildMonthlyRevenueRows(events: RevenueEvent[]): MonthlyRevenueR
         eventCount: monthEvents.length,
       };
     });
+}
+
+function normalizeDateOnly(anchorDate: Date): Date {
+  return new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
+}
+
+function buildSettlementRangeRow(
+  events: RevenueEvent[],
+  key: string,
+  startDate: string,
+  endDate: string
+): SettlementRangeRow {
+  const rangeEvents = events.filter((event) => event.date >= startDate && event.date <= endDate);
+  const income = rangeEvents.reduce((total, event) => total + event.income, 0);
+  const expense = rangeEvents.reduce((total, event) => total + event.expense, 0);
+
+  return {
+    key,
+    startDate,
+    endDate,
+    income,
+    expense,
+    balance: income - expense,
+    eventCount: rangeEvents.length,
+  };
+}
+
+function getWeekStart(anchorDate: Date): Date {
+  const weekStart = normalizeDateOnly(anchorDate);
+  const offset = (weekStart.getDay() + 6) % 7;
+  weekStart.setDate(weekStart.getDate() - offset);
+  return weekStart;
+}
+
+export function buildWeeklySettlementRows(
+  events: RevenueEvent[],
+  anchorDate: Date = new Date()
+): SettlementRangeRow[] {
+  const today = normalizeDateOnly(anchorDate);
+  const currentWeekStart = getWeekStart(today);
+  const previousWeekStart = new Date(currentWeekStart);
+  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+  const previousWeekEnd = new Date(currentWeekStart);
+  previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
+
+  return [
+    buildSettlementRangeRow(
+      events,
+      'current-week',
+      formatDateString(currentWeekStart),
+      formatDateString(today)
+    ),
+    buildSettlementRangeRow(
+      events,
+      'previous-week',
+      formatDateString(previousWeekStart),
+      formatDateString(previousWeekEnd)
+    ),
+  ];
+}
+
+export function buildMonthlySettlementRows(
+  events: RevenueEvent[],
+  anchorDate: Date = new Date()
+): SettlementRangeRow[] {
+  const today = normalizeDateOnly(anchorDate);
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const previousMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
+  return [
+    buildSettlementRangeRow(
+      events,
+      'current-month',
+      formatDateString(currentMonthStart),
+      formatDateString(today)
+    ),
+    buildSettlementRangeRow(
+      events,
+      'previous-month',
+      formatDateString(previousMonthStart),
+      formatDateString(previousMonthEnd)
+    ),
+  ];
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarOff, ChevronDown, Pencil, Trash2, X } from 'lucide-react';
+import { CalendarOff, ChevronDown, Pencil, ReceiptText, Trash2, X } from 'lucide-react';
 import type { Appointment } from '../../types';
 import { useModalAnimation } from '../../hooks/useModalAnimation';
 import {
@@ -14,6 +14,7 @@ interface AppointmentDetailModalProps {
   appointment: Appointment | null;
   onClose: () => void;
   onEditAppointment: (appointment: Appointment) => void;
+  onCheckoutAppointment: (appointment: Appointment) => void;
   onCancelAppointment: (appointment: Appointment) => void | Promise<void>;
   onDeleteAppointment: (appointment: Appointment) => void | Promise<void>;
 }
@@ -42,6 +43,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   appointment,
   onClose,
   onEditAppointment,
+  onCheckoutAppointment,
   onCancelAppointment,
   onDeleteAppointment,
 }) => {
@@ -69,6 +71,11 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   if (!shouldRender || !appointment) {
     return null;
   }
+
+  const isCheckoutLocked =
+    appointment.status === 'cancelled' ||
+    appointment.status === 'completed' ||
+    Boolean(appointment.transactionId);
 
   return (
     <div className={modalShell.overlay} role="dialog" aria-modal="true">
@@ -140,6 +147,15 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
             </>
           ) : (
             <>
+              <button
+                type="button"
+                onClick={() => onCheckoutAppointment(appointment)}
+                disabled={isCheckoutLocked}
+                className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-[#F6F0E6] px-5 py-3 text-sm font-bold text-[#4A3B32] disabled:cursor-not-allowed disabled:opacity-50 ${interactionMotion.button}`}
+              >
+                <ReceiptText className="h-4 w-4" />
+                {isCheckoutLocked ? '已完成結帳' : '完成結帳'}
+              </button>
               <button
                 type="button"
                 onClick={() => onEditAppointment(appointment)}

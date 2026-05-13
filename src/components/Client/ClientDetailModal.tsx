@@ -8,10 +8,13 @@ import {
   modalShell,
 } from '../../styles/modalAnimation';
 import { interactionMotion } from '../../styles/interactionMotion';
+import type { ClientSpendingSummary } from '../../utils/clientSpending';
 
 interface ClientDetailModalProps {
   isOpen: boolean;
   client: Client | null;
+  spendingSummary?: ClientSpendingSummary | null;
+  isSpendingLoading?: boolean;
   onClose: () => void;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void | Promise<void>;
@@ -37,9 +40,19 @@ function DetailRow({ label, value, fallback }: DetailRowProps) {
   );
 }
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('zh-TW', {
+    style: 'currency',
+    currency: 'TWD',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
   isOpen,
   client,
+  spendingSummary = null,
+  isSpendingLoading = false,
   onClose,
   onEdit,
   onDelete,
@@ -97,6 +110,26 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
             label="慣用商品 PRODUCT"
             value={client.product}
             fallback="尚未記錄慣用商品"
+          />
+          <DetailRow
+            label="上次消費 LAST CHECKOUT"
+            value={
+              spendingSummary?.lastTransactionAmount != null
+                ? `${spendingSummary.lastTransactionSummary ?? '最近一筆交易'}\n${formatCurrency(
+                    spendingSummary.lastTransactionAmount
+                  )}`
+                : undefined
+            }
+            fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費紀錄'}
+          />
+          <DetailRow
+            label="累積消費 TOTAL SPENT"
+            value={
+              spendingSummary && spendingSummary.totalSpent > 0
+                ? `${formatCurrency(spendingSummary.totalSpent)}\n共 ${spendingSummary.transactionCount} 筆交易`
+                : undefined
+            }
+            fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費總額'}
           />
         </div>
 

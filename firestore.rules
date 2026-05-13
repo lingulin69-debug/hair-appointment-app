@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function requesterEmail() {
+      return request.auth.token.email;
+    }
+
+    function bootstrapPath(appId) {
+      return /databases/$(database)/documents/artifacts/$(appId)/private/access/bootstrap/state;
+    }
+
+    function rolePath(appId, email) {
+      return /databases/$(database)/documents/artifacts/$(appId)/private/access/rolesByEmail/$(email);
+    }
+
+    function bootstrapExists(appId) {
+      return exists(bootstrapPath(appId));
+    }
+
+    function isBootstrapAdmin(appId) {
+      return signedIn()
+        && bootstrapExists(appId)
+        && get(bootstrapPath(appId)).data.ownerEmail == requesterEmail();
+    }
+
+    function hasRole(appId, role) {
+      return signedIn()
+        && exists(rolePath(appId, requesterEmail()))
+        && get(rolePath(appId, requesterEmail())).data.role == role;
+    }
+
+    function isAdmin(appId) {
+      return signedIn() && (isBootstrapAdmin(appId) || hasRole(appId, 'admin'));
+    }
+
+    function isOwner(appId) {
+      return signedIn() && (isAdmin(appId) || hasRole(appId, 'owner'));
+    }
+
+    function isStaff(appId) {
+      return signedIn() && (isOwner(appId) || hasRole(appId, 'staff'));
+    }
+
+    match /artifacts/{appId}/public/data/{document=**} {
+      allow read, write: if isStaff(appId);
+    }
+
+    match /artifacts/{appId}/private/access/bootstrap/{docId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && docId == 'state'
+        && !bootstrapExists(appId)
+        && request.resource.data.ownerEmail == requesterEmail()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isAdmin(appId);
+    }
+
+    match /artifacts/{appId}/private/access/rolesByEmail/{email} {
+      allow read: if isAdmin(appId) || (signedIn() && requesterEmail() == email);
+      allow create, update, delete: if isAdmin(appId);
+    }
+  }
+}

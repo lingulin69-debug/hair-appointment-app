@@ -24,6 +24,7 @@ export interface Appointment {
   totalPrice: number;
   status: AppointmentStatus;
   rescheduleCount: number;
+  transactionId?: string;
 }
 
 export interface Client {
@@ -34,6 +35,60 @@ export interface Client {
   product: string;
   lastVisit?: string;
   visitCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CheckoutStatus = 'draft' | 'completed' | 'cancelled';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+
+export interface CheckoutLineItem {
+  itemId?: string;
+  itemName: string;
+  itemType: ItemType;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  note?: string;
+}
+
+export interface CheckoutRecord {
+  id: string;
+  clientId: string;
+  clientName: string;
+  appointmentId?: string;
+  dateStr: string;
+  lineItems: CheckoutLineItem[];
+  subtotal: number;
+  discountAmount: number;
+  adjustmentAmount: number;
+  totalAmount: number;
+  paymentMethod?: PaymentMethod;
+  note?: string;
+  status: CheckoutStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type InventoryMovementType = 'stock_in' | 'stock_out' | 'adjustment';
+export type InventoryMovementReason =
+  | 'purchase'
+  | 'sale'
+  | 'manual_adjustment'
+  | 'return'
+  | 'other';
+
+export interface InventoryMovement {
+  id: string;
+  itemId: string;
+  itemName: string;
+  movementType: InventoryMovementType;
+  reason: InventoryMovementReason;
+  quantity: number;
+  dateStr: string;
+  unitCost?: number;
+  relatedTransactionId?: string;
+  note?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -66,6 +121,8 @@ export interface Leave {
 export type CollectionName =
   | 'appointments'
   | 'clients'
+  | 'transactions'
   | 'revenues'
   | 'leaves'
-  | 'storeItems';
+  | 'storeItems'
+  | 'inventoryMovements';

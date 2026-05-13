@@ -2,10 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { Phone, Search, UserPlus, UsersRound } from 'lucide-react';
 import type { Client } from '../../types';
 import { interactionMotion } from '../../styles/interactionMotion';
+import type { ClientSpendingSummary } from '../../utils/clientSpending';
 
 interface ClientListProps {
   clients: Client[];
   isLoading: boolean;
+  isSpendingLoading?: boolean;
+  spendingByClientId?: Record<string, ClientSpendingSummary>;
   onAddClient?: () => void;
   onSelectClient?: (client: Client) => void;
 }
@@ -20,9 +23,19 @@ function getClientBadge(name: string): string {
   return /[\u4e00-\u9fff]/.test(firstChar) ? firstChar : firstChar.toUpperCase();
 }
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('zh-TW', {
+    style: 'currency',
+    currency: 'TWD',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export const ClientList: React.FC<ClientListProps> = ({
   clients,
   isLoading,
+  isSpendingLoading = false,
+  spendingByClientId = {},
   onAddClient,
   onSelectClient,
 }) => {
@@ -54,7 +67,7 @@ export const ClientList: React.FC<ClientListProps> = ({
                 顧客資料一覽
               </h1>
               <p className="mt-2 text-sm font-medium leading-6 text-[#7A6B5D] md:text-base">
-                卡片只保留姓名與電話，點擊後開啟詳細資料視窗。
+                卡片會顯示顧客基本資料與最新消費摘要，點擊後可看完整資訊。
               </p>
             </div>
 
@@ -108,36 +121,57 @@ export const ClientList: React.FC<ClientListProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredClients.map((client) => (
-              <button
-                key={client.id}
-                type="button"
-                onClick={() => onSelectClient?.(client)}
-                className={`flex items-center gap-4 rounded-[24px] border border-[#DDD4C8] bg-white px-5 py-5 text-left shadow-[0_12px_30px_rgba(74,59,50,0.07)] ${interactionMotion.card}`}
-              >
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#EADFD0] text-2xl font-black text-[#4A3B32]">
-                  {getClientBadge(client.name)}
-                </div>
+            {filteredClients.map((client) => {
+              const spendingSummary = spendingByClientId[client.id];
 
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-xl font-black leading-snug text-[#4A3B32]">
-                    {client.name}
+              return (
+                <button
+                  key={client.id}
+                  type="button"
+                  onClick={() => onSelectClient?.(client)}
+                  className={`flex items-center gap-4 rounded-[24px] border border-[#DDD4C8] bg-white px-5 py-5 text-left shadow-[0_12px_30px_rgba(74,59,50,0.07)] ${interactionMotion.card}`}
+                >
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#EADFD0] text-2xl font-black text-[#4A3B32]">
+                    {getClientBadge(client.name)}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-2 text-base text-[#6B5A4E]">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{client.phone || '尚未填寫電話'}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-sm text-[#6B5A4E]">
-                    <span>{client.lastVisit ? `上次到訪 ${client.lastVisit}` : '尚無到訪紀錄'}</span>
-                    {client.visitCount != null && client.visitCount > 0 && (
-                      <span className="rounded-full bg-[#F1E9DD] px-2 py-0.5 text-sm font-bold text-[#6F6257]">
-                        共 {client.visitCount} 次
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xl font-black leading-snug text-[#4A3B32]">
+                      {client.name}
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-2 text-base text-[#6B5A4E]">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{client.phone || '尚未填寫電話'}</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-3 text-sm text-[#6B5A4E]">
+                      <span>{client.lastVisit ? `上次到訪 ${client.lastVisit}` : '尚無到訪紀錄'}</span>
+                      {client.visitCount != null && client.visitCount > 0 && (
+                        <span className="rounded-full bg-[#F1E9DD] px-2 py-0.5 text-sm font-bold text-[#6F6257]">
+                          共 {client.visitCount} 次
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm font-bold">
+                      <span className="rounded-full bg-[#F7F1E7] px-3 py-1 text-[#6F6257]">
+                        {spendingSummary?.lastTransactionAmount != null
+                          ? `上次消費 ${formatCurrency(spendingSummary.lastTransactionAmount)}`
+                          : isSpendingLoading
+                            ? '消費資料同步中'
+                            : '尚無消費紀錄'}
                       </span>
+                      <span className="rounded-full bg-[#F1E9DD] px-3 py-1 text-[#4A3B32]">
+                        累積 {formatCurrency(spendingSummary?.totalSpent ?? 0)}
+                      </span>
+                    </div>
+                    {spendingSummary?.lastTransactionSummary && (
+                      <div className="mt-2 truncate text-sm font-bold text-[#7A6B5D]">
+                        {spendingSummary.lastTransactionSummary}
+                      </div>
                     )}
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import {
   modalShell,
 } from '../../styles/modalAnimation';
 import { interactionMotion } from '../../styles/interactionMotion';
+import { getOccupiedAppointmentTimes } from '../../utils/appointmentTime';
 import { isExactDateString } from '../../utils/schedule';
 
 interface NewApptModalProps {
@@ -102,17 +103,12 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
       return new Set<string>();
     }
 
-    const sameDayAppointments = safeAppointments.filter(
-      (appointment) =>
-        appointment.dateStr === selectedDateStr && appointment.id !== editingAppointmentId
+    return getOccupiedAppointmentTimes(
+      safeAppointments,
+      selectedDateStr,
+      editingAppointmentId
     );
-
-    if (sameDayAppointments.length === 0) {
-      return new Set<string>();
-    }
-
-    return new Set(sameDayAppointments.map((appointment) => appointment.time));
-  }, [hasValidSelectedDate, safeAppointments, selectedDateStr]);
+  }, [editingAppointmentId, hasValidSelectedDate, safeAppointments, selectedDateStr]);
 
   const availableTimes = useMemo(
     () =>
@@ -121,6 +117,20 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
       ).filter((time) => !occupiedTimes.has(time)),
     [occupiedTimes]
   );
+  const saveBlockedMessage = !tempClientName.trim()
+    ? '請先輸入顧客姓名，才能儲存預約。'
+    : !hasValidSelectedDate
+      ? '請先選擇有效的預約日期。'
+      : isStoreItemsLoading
+        ? '服務資料同步中，請稍候再儲存。'
+        : serviceOptions.length === 0
+          ? '目前沒有可用服務，請先到後台新增服務項目。'
+          : availableTimes.length === 0
+            ? '當天所有 15 分鐘時段都已被預約。'
+            : !tempTime
+              ? '請先選擇可用時段，才能儲存預約。'
+              : null;
+  const isSaveDisabled = saveBlockedMessage !== null;
 
   const [selectedHour = '', selectedMinute = '00'] = (
     tempTime || availableTimes[0] || ''
@@ -439,17 +449,15 @@ export const NewApptModal: React.FC<NewApptModalProps> = ({
         </div>
 
         <div className="mt-4 shrink-0 border-t border-[#E2DCD0] pt-8">
+          {saveBlockedMessage && (
+            <div className="mb-4 rounded-2xl border border-[#C75D4E]/30 bg-[#FFF3EE] px-4 py-3 text-sm font-bold text-[#A34B3F]">
+              {saveBlockedMessage}
+            </div>
+          )}
           <button
             type="button"
             onClick={onSave}
-            disabled={
-              !tempClientName.trim() ||
-              !hasValidSelectedDate ||
-              isStoreItemsLoading ||
-              serviceOptions.length === 0 ||
-              availableTimes.length === 0 ||
-              !tempTime
-            }
+            disabled={isSaveDisabled}
             className={`w-full rounded-2xl bg-[#4A3B32] py-5 text-xl font-black tracking-widest text-white shadow-md disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none ${interactionMotion.button}`}
           >
             {isEditMode ? '儲存修改' : '儲存預約'}

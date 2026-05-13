@@ -3,6 +3,7 @@ import {
   Clock,
   DollarSign,
   Package,
+  PackagePlus,
   Pencil,
   Plus,
   Scissors,
@@ -11,13 +12,17 @@ import {
 } from 'lucide-react';
 import type { ItemType, StoreItem } from '../../types';
 import { interactionMotion } from '../../styles/interactionMotion';
+import type { InventorySummary } from '../../utils/inventory';
 
 type FilterId = 'all' | ItemType;
 
 interface ServiceListProps {
   storeItems: StoreItem[];
   isLoading: boolean;
+  isInventoryLoading?: boolean;
+  inventorySummaryByItemId?: Record<string, InventorySummary>;
   onAddItem?: () => void;
+  onOpenInventory?: (item?: StoreItem) => void;
   onSelectItem?: (item: StoreItem) => void;
   onDeleteItem?: (item: StoreItem) => void | Promise<void>;
   selectedItemId?: string;
@@ -53,7 +58,10 @@ function isStoreItem(value: unknown): value is StoreItem {
 export const ServiceList: React.FC<ServiceListProps> = ({
   storeItems,
   isLoading,
+  isInventoryLoading = false,
+  inventorySummaryByItemId = {},
   onAddItem,
+  onOpenInventory,
   onSelectItem,
   onDeleteItem,
   selectedItemId,
@@ -90,26 +98,39 @@ export const ServiceList: React.FC<ServiceListProps> = ({
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-xs font-bold tracking-[0.32em] text-[#8C7A6B]">
-              服務管理
+              服務與庫存管理
             </div>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-[#4A3B32] md:text-4xl">
               服務與商品
             </h1>
             <p className="mt-2 text-sm text-[#7A6B5D]">
-              管理服務項目、商品售價與服務時長。
+              管理服務項目、商品售價，並追蹤商品目前庫存與進貨出貨紀錄。
             </p>
           </div>
 
-          {onAddItem && (
-            <button
-              type="button"
-              onClick={onAddItem}
-              className={`inline-flex items-center gap-2 rounded-full bg-[#4A3B32] px-5 py-3 text-white shadow-[0_16px_30px_rgba(74,59,50,0.18)] ${interactionMotion.button}`}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="font-bold tracking-wide">新增項目</span>
-            </button>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {onOpenInventory && (
+              <button
+                type="button"
+                onClick={() => onOpenInventory()}
+                className={`inline-flex items-center gap-2 rounded-full border border-[#D6CEC2] bg-[#F6F0E6] px-5 py-3 text-[#4A3B32] shadow-sm ${interactionMotion.button}`}
+              >
+                <PackagePlus className="h-5 w-5" />
+                <span className="font-bold tracking-wide">庫存異動</span>
+              </button>
+            )}
+
+            {onAddItem && (
+              <button
+                type="button"
+                onClick={onAddItem}
+                className={`inline-flex items-center gap-2 rounded-full bg-[#4A3B32] px-5 py-3 text-white shadow-[0_16px_30px_rgba(74,59,50,0.18)] ${interactionMotion.button}`}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="font-bold tracking-wide">新增項目</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -140,6 +161,12 @@ export const ServiceList: React.FC<ServiceListProps> = ({
           </div>
         )}
 
+        {isInventoryLoading && (
+          <div className="rounded-2xl border border-dashed border-[#D5C7B6] bg-[#FCFAF5] px-4 py-3 text-sm font-bold text-[#7A6B5D]">
+            正在同步庫存異動資料...
+          </div>
+        )}
+
         {safeStoreItems.length === 0 ? (
           isLoading ? (
             <ServiceListSkeleton />
@@ -157,6 +184,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
               onDeleteItem={onDeleteItem}
               selectedItemId={selectedItemId}
               deletingItemId={deletingItemId}
+              inventorySummaryByItemId={inventorySummaryByItemId}
+              onOpenInventory={onOpenInventory}
             />
             <StoreItemSection
               title="商品"
@@ -167,6 +196,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
               onDeleteItem={onDeleteItem}
               selectedItemId={selectedItemId}
               deletingItemId={deletingItemId}
+              inventorySummaryByItemId={inventorySummaryByItemId}
+              onOpenInventory={onOpenInventory}
             />
           </div>
         ) : filteredItems.length === 0 ? (
@@ -183,6 +214,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                 isDeleting={item.id === deletingItemId}
                 onSelectItem={onSelectItem}
                 onDeleteItem={onDeleteItem}
+                inventorySummary={inventorySummaryByItemId[item.id]}
+                onOpenInventory={onOpenInventory}
               />
             ))}
           </div>
@@ -201,6 +234,8 @@ interface StoreItemSectionProps {
   onDeleteItem?: (item: StoreItem) => void | Promise<void>;
   selectedItemId?: string;
   deletingItemId?: string | null;
+  inventorySummaryByItemId?: Record<string, InventorySummary>;
+  onOpenInventory?: (item?: StoreItem) => void;
 }
 
 const StoreItemSection: React.FC<StoreItemSectionProps> = ({
@@ -212,6 +247,8 @@ const StoreItemSection: React.FC<StoreItemSectionProps> = ({
   onDeleteItem,
   selectedItemId,
   deletingItemId,
+  inventorySummaryByItemId = {},
+  onOpenInventory,
 }) => {
   return (
     <section className="space-y-4">
@@ -233,6 +270,8 @@ const StoreItemSection: React.FC<StoreItemSectionProps> = ({
               isDeleting={item.id === deletingItemId}
               onSelectItem={onSelectItem}
               onDeleteItem={onDeleteItem}
+              inventorySummary={inventorySummaryByItemId[item.id]}
+              onOpenInventory={onOpenInventory}
             />
           ))}
         </div>
@@ -247,6 +286,8 @@ interface StoreItemCardProps {
   isDeleting: boolean;
   onSelectItem?: (item: StoreItem) => void;
   onDeleteItem?: (item: StoreItem) => void | Promise<void>;
+  inventorySummary?: InventorySummary;
+  onOpenInventory?: (item?: StoreItem) => void;
 }
 
 const StoreItemCard: React.FC<StoreItemCardProps> = ({
@@ -255,6 +296,8 @@ const StoreItemCard: React.FC<StoreItemCardProps> = ({
   isDeleting,
   onSelectItem,
   onDeleteItem,
+  inventorySummary,
+  onOpenInventory,
 }) => {
   const isService = item.type === 'service';
 
@@ -286,6 +329,11 @@ const StoreItemCard: React.FC<StoreItemCardProps> = ({
           <DollarSign className="h-5 w-5" />
           <span>NT$ {item.price.toLocaleString()}</span>
         </div>
+        {!isService && (
+          <div className="rounded-2xl bg-[#F7F1E7] px-3 py-2 text-sm font-bold text-[#6F6257]">
+            目前庫存 {inventorySummary?.currentStock ?? 0}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">
@@ -302,6 +350,19 @@ const StoreItemCard: React.FC<StoreItemCardProps> = ({
             <span className="inline-flex items-center gap-2">
               <Pencil className="h-4 w-4" />
               編輯
+            </span>
+          </button>
+        )}
+
+        {!isService && onOpenInventory && (
+          <button
+            type="button"
+            onClick={() => onOpenInventory(item)}
+            className={`rounded-xl border border-[#E5D6C5] px-4 py-2.5 text-sm font-bold text-[#4A3B32] hover:border-[#4A3B32]/30 hover:bg-[#FFF8F2] ${interactionMotion.subtleButton}`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <PackagePlus className="h-4 w-4" />
+              庫存
             </span>
           </button>
         )}

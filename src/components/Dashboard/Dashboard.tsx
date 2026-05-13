@@ -12,17 +12,25 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { Appointment, Revenue, RevenueKind } from '../../types';
-import { formatDateString } from '../../utils/schedule';
+import {
+  formatDateString,
+  getDateRangeForTrailingDays,
+  getDateRangeForTrailingMonths,
+} from '../../utils/schedule';
 import {
   buildDailyRevenueRows,
   buildMonthlyRevenueRows,
+  buildMonthlySettlementRows,
   buildRevenueEvents,
+  buildWeeklySettlementRows,
   summarizeRevenueEvents,
+  type SettlementRangeRow,
 } from '../../utils/revenue';
 
 export type DashboardPeriod = '7d' | '30d' | '6m' | '1y';
 
 type DashboardTab = 'overview' | 'income';
+type SettlementTab = 'daily' | 'weekly' | 'monthly';
 type RevenueFeedbackTone = 'success' | 'error' | 'info';
 
 interface DashboardProps {
@@ -45,6 +53,12 @@ const PERIOD_OPTIONS: Array<{ id: DashboardPeriod; label: string }> = [
 const TAB_OPTIONS: Array<{ id: DashboardTab; label: string }> = [
   { id: 'overview', label: '概況' },
   { id: 'income', label: '收入' },
+];
+
+const SETTLEMENT_TAB_OPTIONS: Array<{ id: SettlementTab; label: string }> = [
+  { id: 'daily', label: '日結餘' },
+  { id: 'weekly', label: '週結算' },
+  { id: 'monthly', label: '月結算' },
 ];
 
 const REVENUE_FEEDBACK_TONE_CLASS: Record<RevenueFeedbackTone, string> = {
@@ -103,6 +117,46 @@ function buildRecentDailyLabels(days: number): string[] {
   });
 }
 
+function buildDashboardPeriodRange(period: DashboardPeriod) {
+  switch (period) {
+    case '30d':
+      return getDateRangeForTrailingDays(30, new Date());
+    case '6m':
+      return getDateRangeForTrailingMonths(6, new Date());
+    case '1y':
+      return getDateRangeForTrailingMonths(12, new Date());
+    case '7d':
+    default:
+      return getDateRangeForTrailingDays(7, new Date());
+  }
+}
+
+function isDateWithinRange(dateStr: string, startDate: string, endDate: string): boolean {
+  return dateStr >= startDate && dateStr <= endDate;
+}
+
+function formatRangeLabel(startDate: string, endDate: string): string {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const formatOptions: Intl.DateTimeFormatOptions = { month: 'numeric', day: 'numeric' };
+  const startLabel = start.toLocaleDateString('zh-TW', formatOptions);
+  const endLabel = end.toLocaleDateString('zh-TW', formatOptions);
+
+  return startDate === endDate ? startLabel : `${startLabel} - ${endLabel}`;
+}
+
+function getSettlementTabDescription(tab: SettlementTab): string {
+  switch (tab) {
+    case 'weekly':
+      return '本週累計從週一算到今天，並保留上週完整週結。';
+    case 'monthly':
+      return '本月累計從 1 號算到今天，並保留上月完整月結。';
+    case 'daily':
+    default:
+      return '固定顯示最近 14 天的收入、支出與淨額。';
+  }
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('zh-TW', {
     style: 'currency',
@@ -126,6 +180,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onPeriodChange,
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [settlementTab, setSettlementTab] = useState<SettlementTab>('daily');
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
   const [entryDate, setEntryDate] = useState(() => formatDateString(new Date()));
   const [entryKind, setEntryKind] = useState<RevenueKind>('income');
   const [entryAmount, setEntryAmount] = useState('');
@@ -149,24 +205,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
     () => safeAppointments.filter((appointment) => appointment.status !== 'cancelled'),
     [safeAppointments]
   );
+  const periodRange = useMemo(() => buildDashboardPeriodRange(period), [period]);
+  const periodAppointments = useMemo(
+    () =>
+      activeAppointments.filter((appointment) =>
+        isDateWithinRange(
+          appointment.dateStr,
+          periodRange.startDateStr,
+          periodRange.endDateStr
+        )
+      ),
+    [activeAppointments, periodRange.endDateStr, periodRange.startDateStr]
+  );
+  const periodRevenues = useMemo(
+    () =>
+      safeRevenues.filter((entry) =>
+        isDateWithinRange(entry.date, periodRange.startDateStr, periodRange.endDateStr)
+      ),
+    [periodRange.endDateStr, periodRange.startDateStr, safeRevenues]
+  );
 
   const summary = useMemo(() => {
-    const totalAppointments = activeAppointments.length;
+    const totalAppointments = periodAppointments.length;
     const uniqueCustomers = new Set(
-      activeAppointments.map((appointment) => appointment.clientName.trim()).filter(Boolean)
+      periodAppointments.map((appointment) => appointment.clientName.trim()).filter(Boolean)
     ).size;
 
     return {
       totalAppointments,
       uniqueCustomers,
     };
-  }, [activeAppointments]);
+  }, [periodAppointments]);
 
   const chartData = useMemo(() => {
     const bucketLabels = buildBucketLabels(period);
     const counts = new Map<string, number>();
 
-    for (const appointment of activeAppointments) {
+    for (const appointment of periodAppointments) {
       if (period === '6m' || period === '1y') {
         const monthKey = `${appointment.dateStr.slice(0, 7)}-01`;
         counts.set(monthKey, (counts.get(monthKey) ?? 0) + 1);
@@ -180,24 +255,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
       count: counts.get(label) ?? 0,
       displayLabel: formatDateLabel(label, period),
     }));
-  }, [activeAppointments, period]);
+  }, [period, periodAppointments]);
 
   const revenueEvents = useMemo(
     () => buildRevenueEvents(safeAppointments, safeRevenues),
     [safeAppointments, safeRevenues]
   );
+  const periodRevenueEvents = useMemo(
+    () => buildRevenueEvents(periodAppointments, periodRevenues),
+    [periodAppointments, periodRevenues]
+  );
   const revenueSummary = useMemo(
-    () => summarizeRevenueEvents(revenueEvents),
-    [revenueEvents]
+    () => summarizeRevenueEvents(periodRevenueEvents),
+    [periodRevenueEvents]
   );
   const recentDailyRows = useMemo(
-    () => buildDailyRevenueRows(revenueEvents, buildRecentDailyLabels(period === '7d' ? 7 : 14)),
-    [period, revenueEvents]
+    () => buildDailyRevenueRows(revenueEvents, buildRecentDailyLabels(14)),
+    [revenueEvents]
   );
-  const monthlyRows = useMemo(
+  const weeklySettlementRows = useMemo(
+    () => buildWeeklySettlementRows(revenueEvents),
+    [revenueEvents]
+  );
+  const monthlySettlementRows = useMemo(
+    () => buildMonthlySettlementRows(revenueEvents),
+    [revenueEvents]
+  );
+  const monthOverviewRows = useMemo(
     () => buildMonthlyRevenueRows(revenueEvents),
     [revenueEvents]
   );
+  const activeMonthKey =
+    selectedMonthKey && monthOverviewRows.some((row) => row.monthKey === selectedMonthKey)
+      ? selectedMonthKey
+      : monthOverviewRows[0]?.monthKey ?? null;
+  const activeMonthSummary = useMemo(
+    () => monthOverviewRows.find((row) => row.monthKey === activeMonthKey) ?? null,
+    [activeMonthKey, monthOverviewRows]
+  );
+  const activeMonthEvents = useMemo(() => {
+    if (!activeMonthKey) {
+      return [];
+    }
+
+    return revenueEvents
+      .filter((event) => event.date.startsWith(activeMonthKey))
+      .slice()
+      .sort((left, right) =>
+        `${right.date} ${right.source} ${right.id}`.localeCompare(
+          `${left.date} ${left.source} ${left.id}`
+        )
+      );
+  }, [activeMonthKey, revenueEvents]);
   const entryAmountNumber = Number(entryAmount);
   const isRevenueFormValid =
     Boolean(entryDate) && Number.isFinite(entryAmountNumber) && entryAmountNumber > 0;
@@ -567,41 +676,92 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <section className="rounded-[28px] border border-[#E3DACD] bg-white p-5 shadow-[0_16px_36px_rgba(74,59,50,0.05)] md:p-6">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-bold text-[#4A3B32]">最近每日結餘</h2>
+                    <h2 className="text-xl font-bold text-[#4A3B32]">區間結算</h2>
                     <p className="mt-1 text-sm text-[#7A6B5D]">
-                      顯示最近 7 到 14 天的收入、支出與淨額。
+                      {getSettlementTabDescription(settlementTab)}
                     </p>
                   </div>
                   <NotebookText className="h-5 w-5 text-[#8C7A6B]" />
                 </div>
 
-                <div className="space-y-3">
-                  {recentDailyRows.map((row) => (
-                    <div
-                      key={row.date}
-                      className="rounded-2xl border border-[#EAE1D4] bg-[#FCFAF5] px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <div className="text-sm font-bold text-[#4A3B32]">
-                            {formatDateLabel(row.date, '30d')}
-                          </div>
-                          <div className="mt-1 text-xs text-[#8C7A6B]">
-                            {row.events.length > 0
-                              ? row.events.map((event) => event.category).join(' / ')
-                              : '當日沒有收入或支出記錄'}
+                <div className="hide-scrollbar flex gap-2 overflow-x-auto pb-1">
+                  {SETTLEMENT_TAB_OPTIONS.map((option) => {
+                    const isActive = option.id === settlementTab;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSettlementTab(option.id)}
+                        className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
+                          isActive
+                            ? 'bg-[#4A3B32] text-white shadow-sm'
+                            : 'border border-[#E2DCD0] bg-white text-[#4A3B32] hover:bg-[#F3ECE2]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4">
+                  {settlementTab === 'daily' ? (
+                    <div className="space-y-3">
+                      {recentDailyRows.map((row) => (
+                        <div
+                          key={row.date}
+                          className="rounded-2xl border border-[#EAE1D4] bg-[#FCFAF5] px-4 py-3"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <div className="text-sm font-bold text-[#4A3B32]">
+                                {formatDateLabel(row.date, '30d')}
+                              </div>
+                              <div className="mt-1 text-xs text-[#8C7A6B]">
+                                {row.events.length > 0
+                                  ? row.events.map((event) => event.category).join(' / ')
+                                  : '當日沒有收入或支出記錄'}
+                              </div>
+                            </div>
+                            <div className="text-right text-sm font-semibold text-[#6F6257]">
+                              <div>收入 {formatCurrency(row.income)}</div>
+                              <div>支出 {formatCurrency(row.expense)}</div>
+                              <div className="mt-1 text-base font-black text-[#4A3B32]">
+                                結餘 {formatCurrency(row.balance)}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right text-sm font-semibold text-[#6F6257]">
-                          <div>收入 {formatCurrency(row.income)}</div>
-                          <div>支出 {formatCurrency(row.expense)}</div>
-                          <div className="mt-1 text-base font-black text-[#4A3B32]">
-                            結餘 {formatCurrency(row.balance)}
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {(settlementTab === 'weekly'
+                        ? weeklySettlementRows.map((row, index) => ({
+                            row,
+                            title: index === 0 ? '本週累計' : '上週結算',
+                            subtitle: `${formatRangeLabel(row.startDate, row.endDate)} · ${
+                              index === 0 ? '週一到今天' : '上週一到上週日'
+                            }`,
+                          }))
+                        : monthlySettlementRows.map((row, index) => ({
+                            row,
+                            title: index === 0 ? '本月累計' : '上月結算',
+                            subtitle: `${formatRangeLabel(row.startDate, row.endDate)} · ${
+                              index === 0 ? '1 號到今天' : '完整月份'
+                            }`,
+                          }))
+                      ).map((item) => (
+                        <SettlementSummaryCard
+                          key={item.row.key}
+                          row={item.row}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -610,22 +770,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <section className="rounded-[28px] border border-[#E3DACD] bg-white p-5 shadow-[0_16px_36px_rgba(74,59,50,0.05)] md:p-6">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-bold text-[#4A3B32]">每月結算</h2>
+                    <h2 className="text-xl font-bold text-[#4A3B32]">月份總覽</h2>
                     <p className="mt-1 text-sm text-[#7A6B5D]">
-                      方便月底結帳時快速看每月收入、支出與淨額。
+                      依最近 1 年資料回看各月份收入、支出與淨額；點月份可直接查看當月紀錄。
                     </p>
                   </div>
                   <CalendarRange className="h-5 w-5 text-[#8C7A6B]" />
                 </div>
 
-                {monthlyRows.length === 0 ? (
-                  <EmptyState message="目前還沒有足夠的收入資料可做月結算。" />
+                {monthOverviewRows.length === 0 ? (
+                  <EmptyState message="目前還沒有足夠的收入資料可查看月份總覽。" />
                 ) : (
                   <div className="space-y-3">
-                    {monthlyRows.map((row) => (
-                      <div
+                    {monthOverviewRows.map((row) => (
+                      <button
                         key={row.monthKey}
-                        className="rounded-2xl border border-[#EAE1D4] bg-[#FCFAF5] px-4 py-3"
+                        type="button"
+                        onClick={() => setSelectedMonthKey(row.monthKey)}
+                        className={`block w-full rounded-2xl border px-4 py-3 text-left transition ${
+                          activeMonthKey === row.monthKey
+                            ? 'border-[#4A3B32] bg-[#F7F1E7] shadow-sm'
+                            : 'border-[#EAE1D4] bg-[#FCFAF5] hover:border-[#D6CABB] hover:bg-[#FFFDF8]'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
@@ -644,8 +810,86 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     ))}
+
+                    {activeMonthSummary && (
+                      <div className="rounded-[24px] border border-[#E6DED2] bg-[#FFFCF7] p-4 md:p-5">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <h3 className="text-lg font-black text-[#4A3B32]">
+                              {formatMonthLabel(activeMonthSummary.monthKey)} 紀錄
+                            </h3>
+                            <p className="mt-1 text-sm text-[#7A6B5D]">
+                              預約收入與手動加帳/扣帳都會列在這裡，方便月底逐筆回查。
+                            </p>
+                          </div>
+                          <div className="rounded-full bg-[#F1E9DD] px-4 py-2 text-sm font-black text-[#6F6257]">
+                            共 {activeMonthSummary.eventCount} 筆
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <div className="rounded-2xl bg-[#FCFAF5] px-4 py-3 text-sm font-bold text-[#6F6257]">
+                            <div className="text-xs tracking-[0.2em] text-[#8C7A6B]">收入</div>
+                            <div className="mt-2 text-lg font-black text-[#355F46]">
+                              {formatCurrency(activeMonthSummary.income)}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl bg-[#FCFAF5] px-4 py-3 text-sm font-bold text-[#6F6257]">
+                            <div className="text-xs tracking-[0.2em] text-[#8C7A6B]">支出</div>
+                            <div className="mt-2 text-lg font-black text-[#A85145]">
+                              {formatCurrency(activeMonthSummary.expense)}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl bg-[#FCFAF5] px-4 py-3 text-sm font-bold text-[#6F6257]">
+                            <div className="text-xs tracking-[0.2em] text-[#8C7A6B]">淨額</div>
+                            <div className="mt-2 text-lg font-black text-[#4A3B32]">
+                              {formatCurrency(activeMonthSummary.balance)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                          {activeMonthEvents.map((event) => {
+                            const isExpense = event.expense > 0;
+                            const amount = isExpense ? event.expense : event.income;
+
+                            return (
+                              <div
+                                key={event.id}
+                                className="rounded-2xl border border-[#EAE1D4] bg-[#FCFAF5] px-4 py-3"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-black text-[#4A3B32]">
+                                      {event.date} · {event.category}
+                                    </div>
+                                    <div className="mt-1 text-sm text-[#7A6B5D]">
+                                      {event.label}
+                                      {event.note ? ` · ${event.note}` : ''}
+                                    </div>
+                                  </div>
+                                  <div className="shrink-0 text-right">
+                                    <div
+                                      className={`text-base font-black ${
+                                        isExpense ? 'text-[#A85145]' : 'text-[#355F46]'
+                                      }`}
+                                    >
+                                      {isExpense ? '- ' : '+ '}
+                                      {formatCurrency(amount)}
+                                    </div>
+                                    <div className="mt-1 text-xs font-bold text-[#8C7A6B]">
+                                      {event.source === 'appointment' ? '預約收入' : '手動記帳'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
@@ -720,6 +964,44 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message }) => {
   return (
     <div className="rounded-2xl border border-dashed border-[#D5C7B6] bg-[#F8F2E8] px-6 py-12 text-center text-[#7A6B5D]">
       {message}
+    </div>
+  );
+};
+
+interface SettlementSummaryCardProps {
+  row: SettlementRangeRow;
+  title: string;
+  subtitle: string;
+}
+
+const SettlementSummaryCard: React.FC<SettlementSummaryCardProps> = ({
+  row,
+  title,
+  subtitle,
+}) => {
+  return (
+    <div className="rounded-2xl border border-[#EAE1D4] bg-[#FCFAF5] px-4 py-4">
+      <div className="text-base font-bold text-[#4A3B32]">{title}</div>
+      <div className="mt-1 text-xs text-[#8C7A6B]">{subtitle}</div>
+
+      <div className="mt-4 space-y-2 text-sm font-semibold text-[#6F6257]">
+        <div className="flex items-center justify-between gap-3">
+          <span>收入</span>
+          <span>{formatCurrency(row.income)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>支出</span>
+          <span>{formatCurrency(row.expense)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-[#E4D9CB] pt-2 text-base font-black text-[#4A3B32]">
+          <span>結餘</span>
+          <span>{formatCurrency(row.balance)}</span>
+        </div>
+      </div>
+
+      <div className="mt-3 text-xs text-[#8C7A6B]">
+        {row.eventCount > 0 ? `共 ${row.eventCount} 筆收入事件` : '目前沒有收入或支出記錄'}
+      </div>
     </div>
   );
 };

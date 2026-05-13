@@ -113,3 +113,6 @@ export const APP_ID =
 
 export const colPath = (name: string) =>
   `artifacts/${APP_ID}/public/data/${name}`;
+
+export const accessPath = (name: string) =>
+  `artifacts/${APP_ID}/private/access/${name}`;
