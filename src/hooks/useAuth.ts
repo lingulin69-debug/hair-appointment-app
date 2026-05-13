@@ -6,6 +6,11 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import {
+  activateLoginSession,
+  clearActiveLoginSession,
+  hasActiveLoginSession,
+} from '../utils/loginIdentity';
 
 function getFriendlyAuthError(error: unknown): string {
   const code =
@@ -40,10 +45,19 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(
       auth,
       (nextUser) => {
+        if (nextUser && !hasActiveLoginSession()) {
+          clearActiveLoginSession();
+          setUser(null);
+          setIsLoading(false);
+          void firebaseSignOut(auth);
+          return;
+        }
+
         setUser(nextUser);
         setIsLoading(false);
       },
       () => {
+        clearActiveLoginSession();
         setUser(null);
         setIsLoading(false);
       }
@@ -54,16 +68,19 @@ export function useAuth() {
 
   async function signIn(email: string, password: string): Promise<string | null> {
     try {
+      activateLoginSession();
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       await userCredential.user.getIdToken(true);
       return null;
     } catch (error) {
+      clearActiveLoginSession();
       return getFriendlyAuthError(error);
     }
   }
 
   async function signOut(): Promise<string | null> {
     try {
+      clearActiveLoginSession();
       await firebaseSignOut(auth);
       return null;
     } catch {

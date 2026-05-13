@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  ACTIVE_LOGIN_SESSION_STORAGE_KEY,
+  activateLoginSession,
   REMEMBERED_LOGIN_STORAGE_KEY,
+  clearActiveLoginSession,
   clearRememberedLogin,
+  hasActiveLoginSession,
   loadRememberedLogin,
   normalizeLoginIdentifier,
   saveRememberedLogin,
@@ -9,6 +13,7 @@ import {
 
 afterEach(() => {
   window.localStorage.removeItem(REMEMBERED_LOGIN_STORAGE_KEY);
+  window.sessionStorage.removeItem(ACTIVE_LOGIN_SESSION_STORAGE_KEY);
 });
 
 describe('login identity utilities', () => {
@@ -40,5 +45,15 @@ describe('login identity utilities', () => {
     saveRememberedLogin({ identifier: 'alassealin', password: 'secret-pass' });
     clearRememberedLogin();
     expect(loadRememberedLogin()).toBeNull();
+  });
+
+  it('tracks the active login session in sessionStorage only', () => {
+    expect(hasActiveLoginSession()).toBe(false);
+
+    activateLoginSession();
+    expect(hasActiveLoginSession()).toBe(true);
+
+    clearActiveLoginSession();
+    expect(hasActiveLoginSession()).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ export type RememberedLogin = {
 };
 
 export const REMEMBERED_LOGIN_STORAGE_KEY = 'amy-salon-remembered-login';
+export const ACTIVE_LOGIN_SESSION_STORAGE_KEY = 'amy-salon-active-login-session';
 export const DEFAULT_LOGIN_ALIAS_DOMAIN = 'amysalon.local';
 
 export function normalizeLoginIdentifier(value: string): string {
@@ -74,4 +75,28 @@ export function clearRememberedLogin() {
   }
 
   window.localStorage.removeItem(REMEMBERED_LOGIN_STORAGE_KEY);
+}
+
+export function hasActiveLoginSession(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.sessionStorage.getItem(ACTIVE_LOGIN_SESSION_STORAGE_KEY) === '1';
+}
+
+export function activateLoginSession() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.setItem(ACTIVE_LOGIN_SESSION_STORAGE_KEY, '1');
+}
+
+export function clearActiveLoginSession() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(ACTIVE_LOGIN_SESSION_STORAGE_KEY);
 }
