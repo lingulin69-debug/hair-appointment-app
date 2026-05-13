@@ -37,12 +37,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   return (
-    <div className="force-serif relative min-h-[100dvh] overflow-hidden bg-[#EBE6DC] text-[#4A3B32]">
+    <div
+      data-testid="login-screen-shell"
+      className="force-serif relative h-[100dvh] overflow-x-hidden overflow-y-auto bg-[#EBE6DC] text-[#4A3B32]"
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,250,245,0.96),_transparent_42%),radial-gradient(circle_at_bottom_right,_rgba(214,194,171,0.42),_transparent_32%)]" />
       <div className="absolute -left-20 top-10 h-72 w-72 rounded-full border border-white/50 bg-white/20 blur-2xl" />
       <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#D9C8B4]/30 blur-3xl" />
 
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center gap-8 px-6 py-10 lg:flex-row lg:items-center lg:gap-10">
+      <div
+        data-testid="login-screen-layout"
+        className="relative mx-auto flex min-h-full max-w-6xl flex-col justify-start gap-8 px-6 py-10 lg:min-h-[100dvh] lg:flex-row lg:items-center lg:justify-center lg:gap-10"
+      >
         <section className="max-w-xl rounded-[36px] border border-white/60 bg-white/45 p-8 shadow-[0_24px_70px_rgba(74,59,50,0.12)] backdrop-blur-xl md:p-10">
           <div className="inline-flex items-center gap-3 rounded-full bg-[#F7EFE5] px-4 py-2 text-sm font-black tracking-[0.18em] text-[#8C7A6B]">
             <Scissors className="h-4 w-4" />

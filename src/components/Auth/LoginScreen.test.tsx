@@ -7,6 +7,15 @@ afterEach(() => {
 });
 
 describe('LoginScreen', () => {
+  it('keeps the login layout vertically scrollable on small screens', () => {
+    render(<LoginScreen onSubmit={vi.fn()} />);
+
+    expect(screen.getByTestId('login-screen-shell')).toHaveClass('overflow-y-auto');
+    expect(screen.getByTestId('login-screen-shell')).toHaveClass('h-[100dvh]');
+    expect(screen.getByTestId('login-screen-layout')).toHaveClass('justify-start');
+    expect(screen.getByTestId('login-screen-layout')).toHaveClass('lg:justify-center');
+  });
+
   it('keeps submit disabled until email and password are filled', () => {
     render(<LoginScreen onSubmit={vi.fn()} />);
 
