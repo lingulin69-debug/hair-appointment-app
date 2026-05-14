@@ -18,6 +18,20 @@ const appointments: Appointment[] = [
     status: 'pending',
     rescheduleCount: 0,
   },
+  {
+    id: 'appt-2',
+    clientId: 'client-2',
+    clientName: 'Bob',
+    phone: '0987654321',
+    time: '11:00',
+    service: '染髮',
+    pax: 1,
+    notes: '',
+    dateStr: '2099-03-29',
+    totalPrice: 2500,
+    status: 'cancelled',
+    rescheduleCount: 0,
+  },
 ];
 
 const storeItems: StoreItem[] = [
@@ -64,6 +78,7 @@ describe('Calendar', () => {
     const table = screen.getByRole('table');
     expect(within(table).getAllByRole('row')).toHaveLength(65);
     expect(within(table).getByText('Alice')).toBeInTheDocument();
+    expect(within(table).queryByText('Bob')).not.toBeInTheDocument();
     expect(within(table).getByText('已預約')).toBeInTheDocument();
     expect(within(table).getAllByText('空檔').length).toBeGreaterThan(0);
   });

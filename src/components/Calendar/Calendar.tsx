@@ -81,7 +81,13 @@ export const Calendar: React.FC<CalendarProps> = ({
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const selectedDatePanelRef = useRef<HTMLDivElement>(null);
-  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const safeAppointments = useMemo(
+    () =>
+      (Array.isArray(appointments) ? appointments : []).filter(
+        (appointment) => appointment.status !== 'cancelled'
+      ),
+    [appointments]
+  );
   const safeStoreItems = Array.isArray(storeItems) ? storeItems : [];
   const groupedAppointments = useMemo(
     () => groupAppointmentsByDate(safeAppointments),

@@ -105,7 +105,7 @@ export const AccessControlPanel: React.FC<AccessControlPanelProps> = ({
             只有管理員可以調整帳號權限。owner 可以進後台，但不會看到這個面板。
           </p>
         </div>
-        <div className="rounded-full bg-[#F7EFE5] px-4 py-2 text-sm font-black text-[#6F6257]">
+        <div className="max-w-full break-all rounded-[22px] bg-[#F7EFE5] px-4 py-2 text-sm font-black leading-6 text-[#6F6257] md:max-w-[360px] md:break-words">
           管理員帳號：{bootstrapOwnerEmail}
         </div>
       </div>
@@ -161,8 +161,10 @@ export const AccessControlPanel: React.FC<AccessControlPanelProps> = ({
                 key={entry.email}
                 className="flex flex-col gap-3 rounded-[22px] border border-[#E6DED2] bg-[#FCFAF5] p-4 md:flex-row md:items-center md:justify-between"
               >
-                <div>
-                  <div className="text-lg font-black text-[#4A3B32]">{entry.email}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="break-all text-base font-black leading-7 text-[#4A3B32] md:text-lg">
+                    {entry.email}
+                  </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-2 rounded-full bg-[#F1E9DD] px-3 py-1 text-sm font-black text-[#6F6257]">
                       {entry.role !== 'staff' ? <Crown className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
@@ -176,7 +178,7 @@ export const AccessControlPanel: React.FC<AccessControlPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 md:justify-end">
                   <button
                     type="button"
                     onClick={() => void handleRoleChange(entry.email, 'staff')}

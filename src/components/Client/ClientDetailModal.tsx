@@ -74,7 +74,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
       />
 
       <div
-        className={`${modalShell.panel} ${modalShell.centeredPanel} w-full max-w-2xl rounded-[32px] border border-[#E6DED2] bg-[#FFFCF7] p-6 md:p-8 ${modalAnimation.base} ${
+        className={`${modalShell.panel} ${modalShell.centeredPanel} flex w-full max-w-2xl flex-col overflow-hidden rounded-[32px] border border-[#E6DED2] bg-[#FFFCF7] p-6 md:p-8 ${modalAnimation.base} ${
           isVisible ? modalAnimation.enter : modalAnimation.exit
         }`}
       >
@@ -98,39 +98,41 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
           </button>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <DetailRow label="姓名 NAME" value={client.name} fallback="未填寫" />
-          <DetailRow label="電話 PHONE" value={client.phone} fallback="尚未填寫電話" />
-          <DetailRow
-            label="喜好 PREFERENCE"
-            value={client.preference}
-            fallback="尚未記錄顧客喜好"
-          />
-          <DetailRow
-            label="慣用商品 PRODUCT"
-            value={client.product}
-            fallback="尚未記錄慣用商品"
-          />
-          <DetailRow
-            label="上次消費 LAST CHECKOUT"
-            value={
-              spendingSummary?.lastTransactionAmount != null
-                ? `${spendingSummary.lastTransactionSummary ?? '最近一筆交易'}\n${formatCurrency(
-                    spendingSummary.lastTransactionAmount
-                  )}`
-                : undefined
-            }
-            fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費紀錄'}
-          />
-          <DetailRow
-            label="累積消費 TOTAL SPENT"
-            value={
-              spendingSummary && spendingSummary.totalSpent > 0
-                ? `${formatCurrency(spendingSummary.totalSpent)}\n共 ${spendingSummary.transactionCount} 筆交易`
-                : undefined
-            }
-            fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費總額'}
-          />
+        <div className="custom-scrollbar mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailRow label="姓名 NAME" value={client.name} fallback="未填寫" />
+            <DetailRow label="電話 PHONE" value={client.phone} fallback="尚未填寫電話" />
+            <DetailRow
+              label="喜好 PREFERENCE"
+              value={client.preference}
+              fallback="尚未記錄顧客喜好"
+            />
+            <DetailRow
+              label="慣用商品 PRODUCT"
+              value={client.product}
+              fallback="尚未記錄慣用商品"
+            />
+            <DetailRow
+              label="上次消費 LAST CHECKOUT"
+              value={
+                spendingSummary?.lastTransactionAmount != null
+                  ? `${spendingSummary.lastTransactionSummary ?? '最近一筆交易'}\n${formatCurrency(
+                      spendingSummary.lastTransactionAmount
+                    )}`
+                  : undefined
+              }
+              fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費紀錄'}
+            />
+            <DetailRow
+              label="累積消費 TOTAL SPENT"
+              value={
+                spendingSummary && spendingSummary.totalSpent > 0
+                  ? `${formatCurrency(spendingSummary.totalSpent)}\n共 ${spendingSummary.transactionCount} 筆交易`
+                  : undefined
+              }
+              fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費總額'}
+            />
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-[#E8E1D6] pt-5 md:flex-row md:justify-end">

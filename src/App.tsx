@@ -20,7 +20,7 @@ import { BootstrapOwnerScreen } from './components/Auth/BootstrapOwnerScreen';
 import { AccessDeniedScreen } from './components/Auth/AccessDeniedScreen';
 import { AccessControlPanel } from './components/Auth/AccessControlPanel';
 import { LoginScreen } from './components/Auth/LoginScreen';
-import ClientForm from './components/Client/ClientForm';
+import ClientForm, { type ClientFormData } from './components/Client/ClientForm';
 import { ClientDetailModal } from './components/Client/ClientDetailModal';
 import { ItemModal } from './components/Services/ItemModal';
 import type { DashboardPeriod } from './components/Dashboard/Dashboard';
@@ -596,14 +596,13 @@ export default function App() {
   ]);
 
   const handleConfirmClient = useCallback(
-    async (clientData: Omit<Client, 'id'>) => {
+    async (clientData: ClientFormData) => {
       const trimmedName = clientData.name.trim();
       if (!trimmedName || isSaving) return;
 
       setIsSaving(true);
       try {
         const payload = {
-          ...clientData,
           name: trimmedName,
           phone: clientData.phone.trim(),
           preference: clientData.preference.trim(),
@@ -687,7 +686,10 @@ export default function App() {
       setDeletingItemId(item.id);
 
       try {
-        await deleteStoreItem(item.id);
+        const deleted = await deleteStoreItem(item.id);
+        if (!deleted) {
+          window.alert('項目刪除失敗，請稍後再試。');
+        }
       } finally {
         setDeletingItemId((current) => (current === item.id ? null : current));
       }
@@ -704,6 +706,7 @@ export default function App() {
 
       const deleted = await deleteClient(client.id);
       if (!deleted) {
+        window.alert('顧客刪除失敗，請稍後再試。');
         return;
       }
 
@@ -734,21 +737,19 @@ export default function App() {
       const { clientName, dateStr, time } = appointment;
       const confirmMessage = `確定要取消 ${clientName} 在 ${dateStr} ${time} 的預約嗎？`;
       if (window.confirm(confirmMessage)) {
-        await deleteAppointment(appointment.id);
+        const didCancel = await updateAppointment(appointment.id, {
+          status: 'cancelled',
+        });
+        if (!didCancel) {
+          window.alert('取消預約失敗，請稍後再試。');
+          return;
+        }
+
         setIsApptDetailOpen(false);
         setSelectedAppt(null);
       }
     },
-    [deleteAppointment]
-  );
-
-  const handleDeleteAppointment = useCallback(
-    async (appointment: Appointment) => {
-      await deleteAppointment(appointment.id);
-      setIsApptDetailOpen(false);
-      setSelectedAppt(null);
-    },
-    [deleteAppointment]
+    [updateAppointment]
   );
 
   const handleOpenCheckout = useCallback((appointment: Appointment) => {
@@ -931,11 +932,11 @@ export default function App() {
         onSignOut={handleSignOut}
       />
 
-      <div className="relative flex flex-1 overflow-hidden p-1.5 md:p-6 lg:space-x-8">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden p-1.5 md:p-6 lg:space-x-8">
         <div
           ref={mainContentRef}
           onScroll={checkMainScroll}
-          className={`custom-scrollbar ${interactionMotion.surface} flex flex-1 flex-col overflow-y-auto rounded-[24px] md:rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]`}
+          className={`custom-scrollbar ${interactionMotion.surface} flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[24px] md:rounded-[40px] border border-[#E2DCD0] bg-[#FCFAF5] shadow-[0_8px_30px_rgba(74,59,50,0.06)]`}
         >
           {currentView === 'calendar' && (
             <Calendar
@@ -1081,7 +1082,6 @@ export default function App() {
         onEditAppointment={openEditAppointmentModal}
         onCheckoutAppointment={handleOpenCheckout}
         onCancelAppointment={handleCancelAppointment}
-        onDeleteAppointment={handleDeleteAppointment}
       />
 
       <CheckoutModal

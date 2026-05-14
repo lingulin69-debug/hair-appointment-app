@@ -9,14 +9,16 @@ import {
 } from '../../styles/modalAnimation';
 import { interactionMotion } from '../../styles/interactionMotion';
 
+export type ClientFormData = Pick<Client, 'name' | 'phone' | 'preference' | 'product'>;
+
 interface Props {
   isOpen: boolean;
   initialData?: Client;
-  onConfirm: (data: Omit<Client, 'id'>) => void;
+  onConfirm: (data: ClientFormData) => void;
   onClose: () => void;
 }
 
-const EMPTY_FORM: Omit<Client, 'id'> = {
+const EMPTY_FORM: ClientFormData = {
   name: '',
   phone: '',
   preference: '',
@@ -31,7 +33,7 @@ export default function ClientForm({
 }: Props) {
   const { shouldRender, isVisible } = useModalAnimation(isOpen);
   const isEdit = Boolean(initialData);
-  const [form, setForm] = useState<Omit<Client, 'id'>>(EMPTY_FORM);
+  const [form, setForm] = useState<ClientFormData>(EMPTY_FORM);
 
   useEffect(() => {
     if (!isOpen) {
@@ -45,9 +47,6 @@ export default function ClientForm({
             phone: initialData.phone,
             preference: initialData.preference,
             product: initialData.product,
-            lastVisit: initialData.lastVisit,
-            createdAt: initialData.createdAt,
-            updatedAt: initialData.updatedAt,
           }
         : EMPTY_FORM
     );

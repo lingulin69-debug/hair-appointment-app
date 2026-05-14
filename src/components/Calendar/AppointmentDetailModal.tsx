@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarOff, ChevronDown, Pencil, ReceiptText, Trash2, X } from 'lucide-react';
+import { CalendarOff, ChevronDown, Pencil, ReceiptText, X } from 'lucide-react';
 import type { Appointment } from '../../types';
 import { useModalAnimation } from '../../hooks/useModalAnimation';
 import {
@@ -16,7 +16,6 @@ interface AppointmentDetailModalProps {
   onEditAppointment: (appointment: Appointment) => void;
   onCheckoutAppointment: (appointment: Appointment) => void;
   onCancelAppointment: (appointment: Appointment) => void | Promise<void>;
-  onDeleteAppointment: (appointment: Appointment) => void | Promise<void>;
 }
 
 type DetailRowProps = {
@@ -45,16 +44,10 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   onEditAppointment,
   onCheckoutAppointment,
   onCancelAppointment,
-  onDeleteAppointment,
 }) => {
   const { shouldRender, isVisible } = useModalAnimation(isOpen);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) setConfirmDelete(false);
-  }, [isOpen]);
 
   const checkScroll = useCallback(() => {
     const el = panelRef.current;
@@ -127,61 +120,31 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-[#E8E1D6] pt-5 md:flex-row md:justify-end">
-          {confirmDelete ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-white px-5 py-3 text-sm font-bold text-[#6F6257] ${interactionMotion.button}`}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={() => onDeleteAppointment(appointment)}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-[#D32F2F] px-5 py-3 text-sm font-bold text-white ${interactionMotion.button}`}
-              >
-                <Trash2 className="h-4 w-4" />
-                確認刪除
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => onCheckoutAppointment(appointment)}
-                disabled={isCheckoutLocked}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-[#F6F0E6] px-5 py-3 text-sm font-bold text-[#4A3B32] disabled:cursor-not-allowed disabled:opacity-50 ${interactionMotion.button}`}
-              >
-                <ReceiptText className="h-4 w-4" />
-                {isCheckoutLocked ? '已完成結帳' : '完成結帳'}
-              </button>
-              <button
-                type="button"
-                onClick={() => onEditAppointment(appointment)}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-white px-5 py-3 text-sm font-bold text-[#4A3B32] ${interactionMotion.button}`}
-              >
-                <Pencil className="h-4 w-4" />
-                編輯預約
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-white px-5 py-3 text-sm font-bold text-[#D32F2F] ${interactionMotion.button}`}
-              >
-                <Trash2 className="h-4 w-4" />
-                刪除預約
-              </button>
-              <button
-                type="button"
-                onClick={() => onCancelAppointment(appointment)}
+          <button
+            type="button"
+            onClick={() => onCheckoutAppointment(appointment)}
+            disabled={isCheckoutLocked}
+            className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-[#F6F0E6] px-5 py-3 text-sm font-bold text-[#4A3B32] disabled:cursor-not-allowed disabled:opacity-50 ${interactionMotion.button}`}
+          >
+            <ReceiptText className="h-4 w-4" />
+            {isCheckoutLocked ? '已完成結帳' : '完成結帳'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onEditAppointment(appointment)}
+            className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#E6DED2] bg-white px-5 py-3 text-sm font-bold text-[#4A3B32] ${interactionMotion.button}`}
+          >
+            <Pencil className="h-4 w-4" />
+            編輯預約
+          </button>
+          <button
+            type="button"
+            onClick={() => onCancelAppointment(appointment)}
             className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-[#A85145] px-5 py-3 text-sm font-bold text-white ${interactionMotion.button}`}
           >
             <CalendarOff className="h-4 w-4" />
             取消此預約
           </button>
-            </>
-          )}
         </div>
 
         {canScrollDown && (
