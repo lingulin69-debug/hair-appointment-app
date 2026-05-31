@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ACTIVE_LOGIN_SESSION_STORAGE_KEY,
+  hasAcceptedLoginSession,
   activateLoginSession,
   REMEMBERED_LOGIN_STORAGE_KEY,
   clearActiveLoginSession,
@@ -55,5 +56,14 @@ describe('login identity utilities', () => {
 
     clearActiveLoginSession();
     expect(hasActiveLoginSession()).toBe(false);
+  });
+
+  it('treats same-tab reload as an accepted login session fallback', () => {
+    vi.spyOn(window.performance, 'getEntriesByType').mockReturnValue([
+      { type: 'reload' } as PerformanceNavigationTiming,
+    ] as unknown as PerformanceEntryList);
+
+    expect(hasActiveLoginSession()).toBe(false);
+    expect(hasAcceptedLoginSession()).toBe(true);
   });
 });

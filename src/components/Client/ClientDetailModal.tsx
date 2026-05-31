@@ -48,6 +48,24 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function formatSignedCurrency(value: number): string {
+  return `${value > 0 ? '+' : ''}${formatCurrency(value)}`;
+}
+
+function buildLastCheckoutValue(summary: ClientSpendingSummary | null): string | undefined {
+  if (!summary || summary.lastTransactionAmount == null) {
+    return undefined;
+  }
+
+  return [
+    summary.lastTransactionDate,
+    summary.lastTransactionSummary ?? '最近一筆交易',
+    formatCurrency(summary.lastTransactionAmount),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
   isOpen,
   client,
@@ -114,13 +132,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
             />
             <DetailRow
               label="上次消費 LAST CHECKOUT"
-              value={
-                spendingSummary?.lastTransactionAmount != null
-                  ? `${spendingSummary.lastTransactionSummary ?? '最近一筆交易'}\n${formatCurrency(
-                      spendingSummary.lastTransactionAmount
-                    )}`
-                  : undefined
-              }
+              value={buildLastCheckoutValue(spendingSummary)}
               fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費紀錄'}
             />
             <DetailRow
@@ -132,6 +144,75 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
               }
               fallback={isSpendingLoading ? '交易資料同步中' : '尚無消費總額'}
             />
+          </div>
+
+          <div className="mt-5 rounded-[28px] border border-[#E6DED2] bg-white/85 px-5 py-5">
+            <div className="flex flex-col gap-2 border-b border-[#EEE5DA] pb-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className="text-xs font-bold tracking-[0.32em] text-[#8C7A6B]">
+                  交易紀錄 HISTORY
+                </div>
+                <div className="mt-2 text-xl font-black tracking-tight text-[#4A3B32]">
+                  每筆日期、項目與成交金額
+                </div>
+              </div>
+              <div className="text-sm font-bold text-[#7A6B5D]">
+                {spendingSummary?.transactionCount ?? 0} 筆交易
+              </div>
+            </div>
+
+            {isSpendingLoading ? (
+              <div className="mt-4 rounded-[22px] border border-dashed border-[#DED4C7] bg-[#FBF7F1] px-4 py-4 text-sm font-semibold text-[#7A6B5D]">
+                交易資料同步中
+              </div>
+            ) : spendingSummary?.transactionHistory.length ? (
+              <div className="mt-4 space-y-3">
+                {spendingSummary.transactionHistory.map((entry) => (
+                  <div
+                    key={entry.transactionId}
+                    className="rounded-[22px] border border-[#E8E0D4] bg-[#FBF7F1] px-4 py-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold tracking-[0.28em] text-[#8C7A6B]">
+                          {entry.dateStr}
+                        </div>
+                        <div className="mt-2 text-base font-black leading-6 text-[#4A3B32]">
+                          {entry.summary}
+                        </div>
+                        {(entry.discountAmount > 0 || entry.adjustmentAmount !== 0) && (
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#7A6B5D]">
+                            {entry.discountAmount > 0 && (
+                              <span className="rounded-full bg-[#FFF0E2] px-2.5 py-1 text-[#A45A3D]">
+                                折扣 -{formatCurrency(entry.discountAmount)}
+                              </span>
+                            )}
+                            {entry.adjustmentAmount !== 0 && (
+                              <span className="rounded-full bg-[#F0E7DA] px-2.5 py-1 text-[#6F6257]">
+                                調整 {formatSignedCurrency(entry.adjustmentAmount)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <div className="text-xs font-bold tracking-[0.24em] text-[#8C7A6B]">
+                          成交金額
+                        </div>
+                        <div className="mt-2 text-lg font-black text-[#4A3B32] [font-variant-numeric:tabular-nums]">
+                          {formatCurrency(entry.totalAmount)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-[22px] border border-dashed border-[#DED4C7] bg-[#FBF7F1] px-4 py-4 text-sm font-semibold text-[#7A6B5D]">
+                尚無消費紀錄
+              </div>
+            )}
           </div>
         </div>
 

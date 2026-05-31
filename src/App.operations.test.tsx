@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from 'firebase/auth';
-import type { Appointment, Client } from './types';
+import type { Appointment, CheckoutRecord, Client } from './types';
 
 const sampleAppointment: Appointment = {
   id: 'appt-1',
@@ -77,6 +77,18 @@ const mockStoreItemsState = {
   isLoading: false,
 };
 
+const mockTransactionsState = {
+  transactions: [] as CheckoutRecord[],
+  isLoading: false,
+  addTransaction: vi.fn(),
+};
+
+const mockInventoryMovementsState = {
+  movements: [],
+  isLoading: false,
+  addInventoryMovement: vi.fn(),
+};
+
 vi.mock('./hooks/useAuth', () => ({
   useAuth: () => mockAuthState,
 }));
@@ -121,19 +133,11 @@ vi.mock('./hooks/useRevenues', () => ({
 }));
 
 vi.mock('./hooks/useTransactions', () => ({
-  useTransactions: () => ({
-    transactions: [],
-    isLoading: false,
-    addTransaction: vi.fn(),
-  }),
+  useTransactions: () => mockTransactionsState,
 }));
 
 vi.mock('./hooks/useInventoryMovements', () => ({
-  useInventoryMovements: () => ({
-    movements: [],
-    isLoading: false,
-    addInventoryMovement: vi.fn(),
-  }),
+  useInventoryMovements: () => mockInventoryMovementsState,
 }));
 
 vi.mock('./components/UI/Navbar', () => ({
@@ -164,15 +168,26 @@ vi.mock('./components/Calendar/AppointmentDetailModal', () => ({
   AppointmentDetailModal: ({
     isOpen,
     appointment,
+    onCallAppointment,
+    onCheckoutAppointment,
     onCancelAppointment,
   }: {
     isOpen: boolean;
     appointment: Appointment | null;
+    onCallAppointment: (appointment: Appointment) => void;
+    onCheckoutAppointment: (appointment: Appointment) => void;
     onCancelAppointment: (appointment: Appointment) => void | Promise<void>;
   }) =>
     isOpen && appointment ? (
       <div>
         <div>APPOINTMENT_DETAIL_OPEN</div>
+        <div>{`APPOINTMENT_PHONE:${appointment.phone ?? ''}`}</div>
+        <button type="button" onClick={() => onCallAppointment(appointment)}>
+          CALL_APPOINTMENT
+        </button>
+        <button type="button" onClick={() => onCheckoutAppointment(appointment)}>
+          OPEN_CHECKOUT
+        </button>
         <button type="button" onClick={() => void onCancelAppointment(appointment)}>
           CANCEL_APPOINTMENT
         </button>
@@ -221,7 +236,46 @@ vi.mock('./components/Calendar/NewApptModal', () => ({
 }));
 
 vi.mock('./components/Calendar/CheckoutModal', () => ({
-  CheckoutModal: () => null,
+  CheckoutModal: ({
+    isOpen,
+    appointment,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    appointment: Appointment | null;
+    onConfirm: (checkout: Omit<CheckoutRecord, 'id'>) => void | Promise<void>;
+  }) =>
+    isOpen && appointment ? (
+      <button
+        type="button"
+        onClick={() =>
+          void onConfirm({
+            clientId: appointment.clientId ?? '',
+            clientName: appointment.clientName,
+            appointmentId: appointment.id,
+            dateStr: appointment.dateStr,
+            lineItems: [
+              {
+                itemId: 'service-1',
+                itemName: '剪髮',
+                itemType: 'service',
+                quantity: 1,
+                unitPrice: 600,
+                totalPrice: 600,
+              },
+            ],
+            subtotal: 600,
+            discountAmount: 0,
+            adjustmentAmount: 0,
+            totalAmount: 600,
+            paymentMethod: 'cash',
+            status: 'completed',
+          })
+        }
+      >
+        SUBMIT_CHECKOUT
+      </button>
+    ) : null,
 }));
 
 vi.mock('./components/Services/InventoryMovementModal', () => ({
@@ -271,10 +325,16 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  sampleAppointment.phone = '0912345678';
+  mockAppointmentsState.appointments = [sampleAppointment];
   mockAppointmentsState.deleteAppointment.mockReset();
   mockAppointmentsState.updateAppointment.mockReset();
   mockClientsState.deleteClient.mockReset();
   mockStoreItemsState.deleteStoreItem.mockReset();
+  mockTransactionsState.transactions = [];
+  mockTransactionsState.addTransaction.mockReset();
+  mockInventoryMovementsState.addInventoryMovement.mockReset();
   mockAuthState.user = { email: 'owner@amysalon.local', uid: 'owner-1' };
   mockAccessState.bootstrap = { ownerEmail: 'admin@amysalon.local' };
   mockAccessState.role = 'owner';
@@ -362,6 +422,16 @@ describe('App destructive flow guards', () => {
     });
   });
 
+  it('fills missing appointment phone from client data before showing detail', () => {
+    sampleAppointment.phone = '';
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'OPEN_APPOINTMENT' }));
+
+    expect(screen.getByText('APPOINTMENT_PHONE:0912345678')).toBeInTheDocument();
+  });
+
   it('closes client detail when switching pages', async () => {
     render(<App />);
 
@@ -373,6 +443,106 @@ describe('App destructive flow guards', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('CLIENT_DETAIL_OPEN')).not.toBeInTheDocument();
+    });
+  });
+
+  it('asks for confirmation before adding the same checkout content within five minutes', async () => {
+    const recentTimestamp = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+    mockTransactionsState.transactions = [
+      {
+        id: 'tx-existing',
+        clientId: 'client-1',
+        clientName: '測試顧客',
+        appointmentId: 'appt-old',
+        dateStr: '2026-05-14',
+        lineItems: [
+          {
+            itemId: 'service-1',
+            itemName: '剪髮',
+            itemType: 'service',
+            quantity: 1,
+            unitPrice: 600,
+            totalPrice: 600,
+          },
+        ],
+        subtotal: 600,
+        discountAmount: 0,
+        adjustmentAmount: 0,
+        totalAmount: 600,
+        paymentMethod: 'cash',
+        status: 'completed',
+        createdAt: recentTimestamp,
+        updatedAt: recentTimestamp,
+      },
+    ];
+    mockTransactionsState.addTransaction.mockResolvedValue('tx-new');
+    mockAppointmentsState.updateAppointment.mockResolvedValue(true);
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'OPEN_APPOINTMENT' }));
+    fireEvent.click(screen.getByRole('button', { name: 'OPEN_CHECKOUT' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'SUBMIT_CHECKOUT' }));
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith(
+        '剛剛已經加入相同的一筆紀錄，是否添加相同？'
+      );
+    });
+
+    expect(mockTransactionsState.addTransaction).not.toHaveBeenCalled();
+  });
+
+  it('continues saving after confirming a recent duplicate checkout warning', async () => {
+    const recentTimestamp = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+    mockTransactionsState.transactions = [
+      {
+        id: 'tx-existing',
+        clientId: 'client-1',
+        clientName: '測試顧客',
+        appointmentId: 'appt-old',
+        dateStr: '2026-05-14',
+        lineItems: [
+          {
+            itemId: 'service-1',
+            itemName: '剪髮',
+            itemType: 'service',
+            quantity: 1,
+            unitPrice: 600,
+            totalPrice: 600,
+          },
+        ],
+        subtotal: 600,
+        discountAmount: 0,
+        adjustmentAmount: 0,
+        totalAmount: 600,
+        paymentMethod: 'cash',
+        status: 'completed',
+        createdAt: recentTimestamp,
+        updatedAt: recentTimestamp,
+      },
+    ];
+    mockTransactionsState.addTransaction.mockResolvedValue('tx-new');
+    mockAppointmentsState.updateAppointment.mockResolvedValue(true);
+    vi.mocked(window.confirm).mockReturnValueOnce(true);
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'OPEN_APPOINTMENT' }));
+    fireEvent.click(screen.getByRole('button', { name: 'OPEN_CHECKOUT' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'SUBMIT_CHECKOUT' }));
+
+    await waitFor(() => {
+      expect(mockTransactionsState.addTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockAppointmentsState.updateAppointment).toHaveBeenCalledWith('appt-1', {
+      status: 'completed',
+      totalPrice: 600,
+      transactionId: 'tx-new',
     });
   });
 });

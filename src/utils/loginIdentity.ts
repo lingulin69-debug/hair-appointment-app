@@ -85,6 +85,32 @@ export function hasActiveLoginSession(): boolean {
   return window.sessionStorage.getItem(ACTIVE_LOGIN_SESSION_STORAGE_KEY) === '1';
 }
 
+function getNavigationType(): string {
+  if (typeof window === 'undefined' || typeof window.performance === 'undefined') {
+    return '';
+  }
+
+  const navigationEntries =
+    typeof window.performance.getEntriesByType === 'function'
+      ? window.performance.getEntriesByType('navigation')
+      : [];
+  const navigationEntry = navigationEntries[0] as PerformanceNavigationTiming | undefined;
+
+  if (navigationEntry && typeof navigationEntry.type === 'string') {
+    return navigationEntry.type;
+  }
+
+  const legacyNavigation = (window.performance as Performance & {
+    navigation?: { type?: number };
+  }).navigation;
+
+  return legacyNavigation?.type === 1 ? 'reload' : '';
+}
+
+export function hasAcceptedLoginSession(): boolean {
+  return hasActiveLoginSession() || getNavigationType() === 'reload';
+}
+
 export function activateLoginSession() {
   if (typeof window === 'undefined') {
     return;

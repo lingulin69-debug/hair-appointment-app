@@ -8,6 +8,8 @@ import type {
 } from '../types';
 import { formatDateString, isExactDateString } from './schedule';
 
+export const RECENT_DUPLICATE_CHECKOUT_WINDOW_MS = 5 * 60 * 1000;
+
 type CheckoutRecordInput = Partial<Omit<CheckoutRecord, 'lineItems'>> & {
   lineItems?: Array<Partial<CheckoutLineItem>> | null;
 };
@@ -61,6 +63,143 @@ function normalizeDateString(value: unknown): string {
   return typeof value === 'string' && isExactDateString(value)
     ? value
     : formatDateString(new Date());
+}
+
+function normalizeDuplicateText(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLocaleLowerCase('zh-TW') : '';
+}
+
+function buildCheckoutLineItemFingerprint(lineItems: CheckoutLineItem[]): string {
+  return lineItems
+    .map((lineItem) =>
+      [
+        lineItem.itemType,
+        lineItem.itemId ?? '',
+        normalizeDuplicateText(lineItem.itemName),
+        lineItem.quantity,
+        lineItem.unitPrice,
+        lineItem.totalPrice,
+        normalizeDuplicateText(lineItem.note),
+      ].join(':')
+    )
+    .sort()
+    .join('|');
+}
+
+function buildLegacyCheckoutLineItemFingerprint(lineItems: CheckoutLineItem[]): string {
+  return lineItems
+    .map((lineItem) =>
+      [
+        normalizeDuplicateText(lineItem.itemName),
+        lineItem.quantity,
+        lineItem.totalPrice,
+      ].join(':')
+    )
+    .sort()
+    .join('|');
+}
+
+export function getCheckoutDuplicateFingerprint(
+  entry: Pick<
+    CheckoutRecord,
+    | 'clientId'
+    | 'clientName'
+    | 'dateStr'
+    | 'lineItems'
+    | 'totalAmount'
+    | 'discountAmount'
+    | 'adjustmentAmount'
+    | 'paymentMethod'
+    | 'note'
+  >
+): string {
+  return [
+    normalizeDuplicateText(entry.clientId) || normalizeDuplicateText(entry.clientName),
+    entry.dateStr,
+    buildCheckoutLineItemFingerprint(entry.lineItems),
+    entry.totalAmount,
+    entry.discountAmount,
+    entry.adjustmentAmount,
+    entry.paymentMethod ?? '',
+    normalizeDuplicateText(entry.note),
+  ].join('|');
+}
+
+export function getCheckoutLegacyHistoryFingerprint(
+  entry: Pick<
+    CheckoutRecord,
+    | 'clientId'
+    | 'clientName'
+    | 'dateStr'
+    | 'lineItems'
+    | 'totalAmount'
+    | 'discountAmount'
+    | 'adjustmentAmount'
+  >
+): string {
+  return [
+    normalizeDuplicateText(entry.clientId) || normalizeDuplicateText(entry.clientName),
+    entry.dateStr,
+    buildLegacyCheckoutLineItemFingerprint(entry.lineItems),
+    entry.totalAmount,
+    entry.discountAmount,
+    entry.adjustmentAmount,
+  ].join('|');
+}
+
+export function getCheckoutActivityTimestamp(
+  entry: Pick<CheckoutRecord, 'createdAt' | 'updatedAt'>
+): number | null {
+  const rawTimestamp = entry.updatedAt ?? entry.createdAt;
+
+  if (!rawTimestamp) {
+    return null;
+  }
+
+  const parsedTimestamp = Date.parse(rawTimestamp);
+  return Number.isFinite(parsedTimestamp) ? parsedTimestamp : null;
+}
+
+export function isRecentDuplicateCheckout(
+  existing: Pick<
+    CheckoutRecord,
+    | 'clientId'
+    | 'clientName'
+    | 'dateStr'
+    | 'lineItems'
+    | 'totalAmount'
+    | 'discountAmount'
+    | 'adjustmentAmount'
+    | 'paymentMethod'
+    | 'note'
+    | 'createdAt'
+    | 'updatedAt'
+  >,
+  candidate: Pick<
+    CheckoutRecord,
+    | 'clientId'
+    | 'clientName'
+    | 'dateStr'
+    | 'lineItems'
+    | 'totalAmount'
+    | 'discountAmount'
+    | 'adjustmentAmount'
+    | 'paymentMethod'
+    | 'note'
+  >,
+  referenceTimestamp = Date.now(),
+  windowMs = RECENT_DUPLICATE_CHECKOUT_WINDOW_MS
+): boolean {
+  const existingTimestamp = getCheckoutActivityTimestamp(existing);
+
+  if (existingTimestamp === null) {
+    return false;
+  }
+
+  return (
+    getCheckoutDuplicateFingerprint(existing) === getCheckoutDuplicateFingerprint(candidate) &&
+    Math.abs(referenceTimestamp - existingTimestamp) <= windowMs
+  );
 }
 
 export function sanitizeCheckoutLineItem(entry: Partial<CheckoutLineItem>): CheckoutLineItem {

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateCheckoutSubtotal,
   calculateCheckoutTotal,
+  isRecentDuplicateCheckout,
+  RECENT_DUPLICATE_CHECKOUT_WINDOW_MS,
   sanitizeCheckoutRecord,
   sanitizeInventoryMovement,
 } from './transactions';
@@ -70,5 +72,69 @@ describe('transactions utilities', () => {
     expect(movement.movementType).toBe('stock_in');
     expect(movement.reason).toBe('purchase');
     expect(movement.quantity).toBe(5);
+  });
+
+  it('detects a recent duplicate checkout by content fingerprint', () => {
+    const baseRecord = {
+      clientId: 'client-1',
+      clientName: 'Alice',
+      dateStr: '2026-05-11',
+      lineItems: [
+        {
+          itemId: 'service-1',
+          itemName: 'Cut',
+          itemType: 'service' as const,
+          quantity: 1,
+          unitPrice: 1200,
+          totalPrice: 1200,
+        },
+      ],
+      subtotal: 1200,
+      discountAmount: 0,
+      adjustmentAmount: 0,
+      totalAmount: 1200,
+      paymentMethod: 'cash' as const,
+      note: 'VIP',
+      status: 'completed' as const,
+    };
+
+    expect(
+      isRecentDuplicateCheckout(
+        {
+          ...baseRecord,
+          createdAt: '2026-05-11T10:01:00.000Z',
+          updatedAt: '2026-05-11T10:01:00.000Z',
+        },
+        baseRecord,
+        Date.parse('2026-05-11T10:05:00.000Z')
+      )
+    ).toBe(true);
+
+    expect(
+      isRecentDuplicateCheckout(
+        {
+          ...baseRecord,
+          createdAt: '2026-05-11T10:01:00.000Z',
+          updatedAt: '2026-05-11T10:01:00.000Z',
+        },
+        {
+          ...baseRecord,
+          note: '不是同一筆',
+        },
+        Date.parse('2026-05-11T10:05:00.000Z')
+      )
+    ).toBe(false);
+
+    expect(
+      isRecentDuplicateCheckout(
+        {
+          ...baseRecord,
+          createdAt: '2026-05-11T10:01:00.000Z',
+          updatedAt: '2026-05-11T10:01:00.000Z',
+        },
+        baseRecord,
+        Date.parse('2026-05-11T10:01:00.000Z') + RECENT_DUPLICATE_CHECKOUT_WINDOW_MS + 1
+      )
+    ).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewApptModal } from './NewApptModal';
 import type { Appointment, Client, StoreItem } from '../../types';
 
@@ -80,6 +80,10 @@ function renderModal(
   );
 }
 
+afterEach(() => {
+  cleanup();
+});
+
 describe('NewApptModal', () => {
   beforeEach(() => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -144,6 +148,38 @@ describe('NewApptModal', () => {
 
     await waitFor(() => {
       expect(screen.getByText('編輯預約')).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole('combobox');
+    const minuteSelect = selects[1];
+
+    expect(within(minuteSelect).getByRole('option', { name: '00' })).not.toBeDisabled();
+  });
+
+  it('keeps a cancelled slot selectable for a new appointment', async () => {
+    renderModal(true, {
+      tempTime: '11:00',
+      appointments: [
+        ...appointments,
+        {
+          id: 'appt-2',
+          clientId: 'client-1',
+          clientName: 'Alice',
+          phone: '0912345678',
+          time: '11:00',
+          service: 'Cut',
+          pax: 1,
+          notes: '',
+          dateStr: '2026-03-29',
+          totalPrice: 1200,
+          status: 'cancelled',
+          rescheduleCount: 0,
+        },
+      ],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '新增預約' })).toBeInTheDocument();
     });
 
     const selects = screen.getAllByRole('combobox');

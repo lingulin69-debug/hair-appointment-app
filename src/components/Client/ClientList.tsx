@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Phone, Search, UserPlus, UsersRound } from 'lucide-react';
+import { Download, Phone, Search, UserPlus, UsersRound } from 'lucide-react';
 import type { Client } from '../../types';
 import { interactionMotion } from '../../styles/interactionMotion';
 import type { ClientSpendingSummary } from '../../utils/clientSpending';
@@ -8,8 +8,10 @@ interface ClientListProps {
   clients: Client[];
   isLoading: boolean;
   isSpendingLoading?: boolean;
+  isExporting?: boolean;
   spendingByClientId?: Record<string, ClientSpendingSummary>;
   onAddClient?: () => void;
+  onExportClients?: () => void | Promise<void>;
   onSelectClient?: (client: Client) => void;
 }
 
@@ -35,8 +37,10 @@ export const ClientList: React.FC<ClientListProps> = ({
   clients,
   isLoading,
   isSpendingLoading = false,
+  isExporting = false,
   spendingByClientId = {},
   onAddClient,
+  onExportClients,
   onSelectClient,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,15 +75,31 @@ export const ClientList: React.FC<ClientListProps> = ({
               </p>
             </div>
 
-            {onAddClient && (
-              <button
-                type="button"
-                onClick={onAddClient}
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-5 py-3 text-white shadow-[0_16px_30px_rgba(74,59,50,0.18)] ${interactionMotion.button}`}
-              >
-                <UserPlus className="h-5 w-5" />
-                <span className="font-bold tracking-wide">新增顧客</span>
-              </button>
+            {(onExportClients || onAddClient) && (
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {onExportClients && (
+                  <button
+                    type="button"
+                    onClick={() => void onExportClients()}
+                    disabled={isExporting}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border border-[#D8C9B7] bg-white px-5 py-3 font-bold text-[#4A3B32] shadow-[0_12px_26px_rgba(74,59,50,0.08)] disabled:cursor-not-allowed disabled:opacity-60 ${interactionMotion.button}`}
+                  >
+                    <Download className="h-5 w-5" />
+                    <span>{isExporting ? '匯出中...' : '匯出 Excel'}</span>
+                  </button>
+                )}
+
+                {onAddClient && (
+                  <button
+                    type="button"
+                    onClick={onAddClient}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#4A3B32] px-5 py-3 text-white shadow-[0_16px_30px_rgba(74,59,50,0.18)] ${interactionMotion.button}`}
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    <span className="font-bold tracking-wide">新增顧客</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

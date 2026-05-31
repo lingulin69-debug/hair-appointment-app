@@ -42,6 +42,18 @@ const appointments: Appointment[] = [
     status: 'pending',
     rescheduleCount: 0,
   },
+  {
+    id: 'appt-4',
+    clientName: 'Alice',
+    time: '12:00',
+    service: 'Cut',
+    pax: 1,
+    notes: '',
+    dateStr: '2026-03-29',
+    totalPrice: 1200,
+    status: 'cancelled',
+    rescheduleCount: 0,
+  },
 ];
 
 describe('appointmentTime utilities', () => {
@@ -62,5 +74,12 @@ describe('appointmentTime utilities', () => {
     expect(
       isAppointmentTimeOccupied(appointments, '2026-03-29', '11:00', 'appt-1')
     ).toBe(true);
+  });
+
+  it('ignores cancelled appointments when checking slot availability', () => {
+    expect([...getOccupiedAppointmentTimes(appointments, '2026-03-29')]).not.toContain(
+      '12:00'
+    );
+    expect(isAppointmentTimeOccupied(appointments, '2026-03-29', '12:00')).toBe(false);
   });
 });

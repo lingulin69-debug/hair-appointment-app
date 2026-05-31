@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { AppointmentDetailModal } from './AppointmentDetailModal';
 import type { Appointment } from '../../types';
 
@@ -19,25 +19,25 @@ const appointment: Appointment = {
 };
 
 describe('AppointmentDetailModal', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
   it('shows cancel but no delete action', () => {
+    const onCallAppointment = vi.fn();
+
     render(
       <AppointmentDetailModal
         isOpen={true}
         appointment={appointment}
         onClose={vi.fn()}
+        onCallAppointment={onCallAppointment}
         onEditAppointment={vi.fn()}
         onCheckoutAppointment={vi.fn()}
         onCancelAppointment={vi.fn()}
       />
     );
 
-    vi.runAllTimers();
-
     expect(screen.getByRole('button', { name: '取消此預約' })).toBeInTheDocument();
+    expect(screen.getByText('0912345678')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '撥打電話' }));
+    expect(onCallAppointment).toHaveBeenCalledWith(appointment);
     expect(screen.queryByRole('button', { name: '刪除預約' })).not.toBeInTheDocument();
   });
 });

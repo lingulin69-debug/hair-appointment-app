@@ -14,6 +14,7 @@ export function getOccupiedAppointmentTimes(
       .filter(
         (appointment) =>
           appointment.dateStr === selectedDateStr &&
+          appointment.status !== 'cancelled' &&
           appointment.id !== excludedAppointmentId &&
           typeof appointment.time === 'string' &&
           appointment.time.length > 0
@@ -35,6 +36,7 @@ export function isAppointmentTimeOccupied(
   return appointments.some(
     (appointment) =>
       appointment.dateStr === selectedDateStr &&
+      appointment.status !== 'cancelled' &&
       appointment.time === time &&
       appointment.id !== excludedAppointmentId
   );

@@ -38,12 +38,14 @@ import {
   type RememberedLogin,
 } from './utils/loginIdentity';
 import {
+  formatDateString,
   getDateRangeForMonth,
   getDateRangeForTrailingDays,
   getDateRangeForTrailingMonths,
   isExactDateString,
 } from './utils/schedule';
 import { isAppointmentTimeOccupied } from './utils/appointmentTime';
+import { isRecentDuplicateCheckout } from './utils/transactions';
 
 const ClientList = lazy(() =>
   import('./components/Client/ClientList').then((module) => ({
@@ -157,10 +159,12 @@ export default function App() {
   const [isCheckoutSaving, setIsCheckoutSaving] = useState(false);
   const [isInventorySaving, setIsInventorySaving] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isExportingClients, setIsExportingClients] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
   const [accessErrorMessage, setAccessErrorMessage] = useState<string | null>(null);
   const [isBootstrappingOwner, setIsBootstrappingOwner] = useState(false);
   const [inventoryTargetItem, setInventoryTargetItem] = useState<StoreItem | null>(null);
+  const checkoutSubmissionRef = useRef(false);
   const isAuthenticated = Boolean(user);
 
   const shouldLoadCalendarData = isAuthenticated && (currentView === 'calendar' || isNewApptModalOpen);
@@ -177,6 +181,7 @@ export default function App() {
   const shouldLoadClients =
     isAuthenticated &&
     (currentView === 'clients' ||
+      isApptDetailOpen ||
       isClientDetailOpen ||
       isClientModalOpen ||
       isNewApptModalOpen ||
@@ -287,6 +292,34 @@ export default function App() {
       })
       .slice(0, 5);
   }, [safeClients, tempClientName]);
+
+  const selectedApptWithResolvedPhone = useMemo(() => {
+    if (!selectedAppt) {
+      return null;
+    }
+
+    const appointmentPhone = selectedAppt.phone?.trim();
+    if (appointmentPhone) {
+      return selectedAppt;
+    }
+
+    const matchedClient = safeClients.find((client) => {
+      if (selectedAppt.clientId && client.id === selectedAppt.clientId) {
+        return true;
+      }
+
+      return normalizeName(client.name) === normalizeName(selectedAppt.clientName);
+    });
+
+    if (!matchedClient?.phone.trim()) {
+      return selectedAppt;
+    }
+
+    return {
+      ...selectedAppt,
+      phone: matchedClient.phone.trim(),
+    };
+  }, [safeClients, selectedAppt]);
 
   const resetAppointmentDraft = useCallback(() => {
     setTempClientName('');
@@ -718,19 +751,29 @@ export default function App() {
     [deleteClient]
   );
 
-  const handleCallClient = useCallback((client: Client) => {
-    if (!client.phone.trim()) {
+  const handleCallContact = useCallback((name: string, phone?: string) => {
+    const trimmedPhone = phone?.trim() ?? '';
+
+    if (!trimmedPhone) {
       window.alert('這位顧客尚未填寫電話。');
       return;
     }
 
-    const shouldCall = window.confirm(`確定要撥打 ${client.name} 的電話嗎？`);
+    const shouldCall = window.confirm(`確定要撥打 ${name} 的電話嗎？`);
     if (!shouldCall) {
       return;
     }
 
-    window.location.href = `tel:${client.phone.trim()}`;
+    window.location.href = `tel:${trimmedPhone}`;
   }, []);
+
+  const handleCallClient = useCallback((client: Client) => {
+    handleCallContact(client.name, client.phone);
+  }, [handleCallContact]);
+
+  const handleCallAppointment = useCallback((appointment: Appointment) => {
+    handleCallContact(appointment.clientName, appointment.phone);
+  }, [handleCallContact]);
 
   const handleCancelAppointment = useCallback(
     async (appointment: Appointment) => {
@@ -788,10 +831,21 @@ export default function App() {
   const handleConfirmCheckout = useCallback(
     async (checkoutDraft: Omit<CheckoutRecord, 'id'>) => {
       const appointment = selectedAppt;
-      if (!appointment || isCheckoutSaving) {
+      if (!appointment || isCheckoutSaving || checkoutSubmissionRef.current) {
         return;
       }
 
+      const hasCompletedCheckout = transactions.some(
+        (transaction) =>
+          transaction.status === 'completed' && transaction.appointmentId === appointment.id
+      );
+
+      if (hasCompletedCheckout) {
+        window.alert('這筆預約已經有結帳紀錄，已略過重複建立。');
+        return;
+      }
+
+      checkoutSubmissionRef.current = true;
       setIsCheckoutSaving(true);
 
       try {
@@ -813,6 +867,24 @@ export default function App() {
           appointmentId: appointment.id,
           status: 'completed',
         };
+
+        const submittedAt = Date.now();
+        const hasRecentDuplicateContent = transactions.some(
+          (transaction) =>
+            transaction.status === 'completed' &&
+            transaction.appointmentId !== appointment.id &&
+            isRecentDuplicateCheckout(transaction, finalizedCheckout, submittedAt)
+        );
+
+        if (hasRecentDuplicateContent) {
+          const shouldContinue = window.confirm(
+            '剛剛已經加入相同的一筆紀錄，是否添加相同？'
+          );
+
+          if (!shouldContinue) {
+            return;
+          }
+        }
 
         const transactionId = await addTransaction(finalizedCheckout);
 
@@ -852,11 +924,56 @@ export default function App() {
         console.error('Error completing checkout:', error);
         window.alert('結帳儲存失敗，請稍後再試。');
       } finally {
+        checkoutSubmissionRef.current = false;
         setIsCheckoutSaving(false);
       }
     },
-    [addInventoryMovement, addTransaction, findClientByName, isCheckoutSaving, selectedAppt, updateAppointment]
+    [
+      addInventoryMovement,
+      addTransaction,
+      findClientByName,
+      isCheckoutSaving,
+      selectedAppt,
+      transactions,
+      updateAppointment,
+    ]
   );
+
+  const handleExportClients = useCallback(async () => {
+    if (isExportingClients) {
+      return;
+    }
+
+    if (safeClients.length === 0) {
+      window.alert('目前沒有可匯出的顧客資料。');
+      return;
+    }
+
+    setIsExportingClients(true);
+
+    try {
+      const [{ buildClientExportData }, XLSX] = await Promise.all([
+        import('./utils/clientExport'),
+        import('xlsx'),
+      ]);
+      const { clientRows, transactionRows } = buildClientExportData(
+        safeClients,
+        clientSpendingSummaryMap
+      );
+      const workbook = XLSX.utils.book_new();
+      const clientsSheet = XLSX.utils.json_to_sheet(clientRows);
+      const transactionsSheet = XLSX.utils.json_to_sheet(transactionRows);
+
+      XLSX.utils.book_append_sheet(workbook, clientsSheet, '顧客資料');
+      XLSX.utils.book_append_sheet(workbook, transactionsSheet, '消費紀錄');
+      XLSX.writeFileXLSX(workbook, `amy-salon-clients-${formatDateString(new Date())}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting clients:', error);
+      window.alert('顧客資料匯出失敗，請稍後再試。');
+    } finally {
+      setIsExportingClients(false);
+    }
+  }, [clientSpendingSummaryMap, isExportingClients, safeClients]);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -962,7 +1079,9 @@ export default function App() {
                 clients={safeClients}
                 isLoading={isClientsLoading}
                 isSpendingLoading={isTransactionsLoading}
+                isExporting={isExportingClients}
                 spendingByClientId={clientSpendingSummaryMap}
+                onExportClients={handleExportClients}
                 onAddClient={() => {
                   setSelectedClient(null);
                   setActiveClient(null);
@@ -1074,11 +1193,12 @@ export default function App() {
 
       <AppointmentDetailModal
         isOpen={isApptDetailOpen}
-        appointment={selectedAppt}
+        appointment={selectedApptWithResolvedPhone}
         onClose={() => {
           setIsApptDetailOpen(false);
           setSelectedAppt(null);
         }}
+        onCallAppointment={handleCallAppointment}
         onEditAppointment={openEditAppointmentModal}
         onCheckoutAppointment={handleOpenCheckout}
         onCancelAppointment={handleCancelAppointment}

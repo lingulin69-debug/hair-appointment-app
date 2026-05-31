@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarOff, ChevronDown, Pencil, ReceiptText, X } from 'lucide-react';
+import { CalendarOff, ChevronDown, Pencil, Phone, ReceiptText, X } from 'lucide-react';
 import type { Appointment } from '../../types';
 import { useModalAnimation } from '../../hooks/useModalAnimation';
 import {
@@ -13,6 +13,7 @@ interface AppointmentDetailModalProps {
   isOpen: boolean;
   appointment: Appointment | null;
   onClose: () => void;
+  onCallAppointment: (appointment: Appointment) => void;
   onEditAppointment: (appointment: Appointment) => void;
   onCheckoutAppointment: (appointment: Appointment) => void;
   onCancelAppointment: (appointment: Appointment) => void | Promise<void>;
@@ -41,6 +42,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   isOpen,
   appointment,
   onClose,
+  onCallAppointment,
   onEditAppointment,
   onCheckoutAppointment,
   onCancelAppointment,
@@ -69,6 +71,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
     appointment.status === 'cancelled' ||
     appointment.status === 'completed' ||
     Boolean(appointment.transactionId);
+  const appointmentPhone = appointment.phone?.trim() ?? '';
 
   return (
     <div className={modalShell.overlay} role="dialog" aria-modal="true">
@@ -109,6 +112,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <DetailRow label="日期 DATE" value={appointment.dateStr} fallback="無" />
           <DetailRow label="時間 TIME" value={appointment.time} fallback="無" />
+          <DetailRow label="電話 PHONE" value={appointmentPhone} fallback="尚未填寫電話" />
           <DetailRow label="服務項目 SERVICE" value={appointment.service} fallback="未指定" />
           <DetailRow label="人數 PAX" value={appointment.pax} fallback="1" />
           <DetailRow label="總金額 PRICE" value={`$${appointment.totalPrice}`} fallback="無" />
@@ -120,6 +124,15 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-[#E8E1D6] pt-5 md:flex-row md:justify-end">
+          <button
+            type="button"
+            onClick={() => onCallAppointment(appointment)}
+            disabled={!appointmentPhone}
+            className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-[#D6CEC2] bg-white px-5 py-3 text-sm font-bold text-[#4A3B32] disabled:cursor-not-allowed disabled:opacity-50 ${interactionMotion.subtleButton}`}
+          >
+            <Phone className="h-4 w-4" />
+            撥打電話
+          </button>
           <button
             type="button"
             onClick={() => onCheckoutAppointment(appointment)}

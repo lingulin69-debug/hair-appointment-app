@@ -8,8 +8,8 @@ import {
 import { auth } from '../config/firebase';
 import {
   activateLoginSession,
+  hasAcceptedLoginSession,
   clearActiveLoginSession,
-  hasActiveLoginSession,
 } from '../utils/loginIdentity';
 
 function getFriendlyAuthError(error: unknown): string {
@@ -45,12 +45,16 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(
       auth,
       (nextUser) => {
-        if (nextUser && !hasActiveLoginSession()) {
+        if (nextUser && !hasAcceptedLoginSession()) {
           clearActiveLoginSession();
           setUser(null);
           setIsLoading(false);
           void firebaseSignOut(auth);
           return;
+        }
+
+        if (nextUser) {
+          activateLoginSession();
         }
 
         setUser(nextUser);
