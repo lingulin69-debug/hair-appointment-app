@@ -6,6 +6,7 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  errorMessage: string | null;
 }
 
 export class ErrorBoundary extends React.Component<
@@ -14,10 +15,11 @@ export class ErrorBoundary extends React.Component<
 > {
   state: ErrorBoundaryState = {
     hasError: false,
+    errorMessage: null,
   };
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -43,6 +45,14 @@ export class ErrorBoundary extends React.Component<
               系統在渲染畫面時發生例外，重新整理後通常可以恢復；如果問題持續發生，請再檢查 Firebase
               與資料格式。
             </p>
+            {this.state.errorMessage && (
+              <details className="mt-4 text-left text-xs text-[#7A6B5D]">
+                <summary className="cursor-pointer font-bold">錯誤資訊</summary>
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-[#F8F2E8] p-3 font-mono">
+                  {this.state.errorMessage}
+                </pre>
+              </details>
+            )}
             <button
               type="button"
               onClick={this.handleReload}

@@ -119,6 +119,8 @@ export default function App() {
     bootstrap,
     roles,
     isLoading: isAccessLoading,
+    accessError,
+    retryAccessCheck,
     isRolesLoading,
     role: accessRole,
     isAdmin,
@@ -453,7 +455,6 @@ export default function App() {
           setRememberedLogin(null);
         }
 
-        window.location.reload();
         return;
       } finally {
         setIsSigningIn(false);
@@ -999,6 +1000,33 @@ export default function App() {
         defaultRememberDevice={Boolean(rememberedLogin)}
         onSubmit={handleSignIn}
       />
+    );
+  }
+
+  if (accessError) {
+    return (
+      <div className="force-serif flex min-h-[100dvh] items-center justify-center bg-[#EBE6DC] px-6 py-10 text-[#4A3B32]">
+        <div className="w-full max-w-lg rounded-[28px] border border-[#E6DED2] bg-[#FFFCF7] p-7 text-center shadow-[0_20px_50px_rgba(74,59,50,0.12)]">
+          <h1 className="text-xl font-black">無法完成帳號權限檢查</h1>
+          <p className="mt-3 text-sm leading-6 text-[#7A6B5D]">{accessError}</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={retryAccessCheck}
+              className="rounded-full bg-[#4A3B32] px-5 py-3 text-sm font-bold text-white"
+            >
+              重試
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="rounded-full border border-[#E2DCD0] bg-white px-5 py-3 text-sm font-bold text-[#4A3B32]"
+            >
+              登出
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
   collection,
@@ -29,6 +29,8 @@ export function useAccessControl(user: User | null) {
   const [isLoading, setIsLoading] = useState(Boolean(user));
   const [isRolesLoading, setIsRolesLoading] = useState(false);
   const [resolvedUserEmail, setResolvedUserEmail] = useState<string | null>(null);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!user || !userEmail) {
@@ -36,6 +38,7 @@ export function useAccessControl(user: User | null) {
       setRoleRecord(null);
       setRoles([]);
       setResolvedUserEmail(null);
+      setAccessError(null);
       setIsLoading(false);
       return;
     }
@@ -45,6 +48,7 @@ export function useAccessControl(user: User | null) {
 
     const finishLoading = () => {
       if (bootstrapReady && roleReady) {
+        window.clearTimeout(timeoutId);
         setResolvedUserEmail(userEmail);
         setIsLoading(false);
       }
@@ -52,6 +56,19 @@ export function useAccessControl(user: User | null) {
 
     setIsLoading(true);
     setResolvedUserEmail(null);
+    setAccessError(null);
+
+    const timeoutId = window.setTimeout(() => {
+      setAccessError('權限檢查逾時，請確認網路連線後重試。');
+      setIsLoading(false);
+    }, 15000);
+
+    const handleAccessReadError = (error: Error) => {
+      window.clearTimeout(timeoutId);
+      console.error('Error reading account access:', error);
+      setAccessError('無法讀取帳號權限，請確認網路連線或稍後重試。');
+      setIsLoading(false);
+    };
 
     const unsubscribeBootstrap = onSnapshot(
       doc(db, accessPath('bootstrap/state')),
@@ -64,9 +81,10 @@ export function useAccessControl(user: User | null) {
         );
         finishLoading();
       },
-      () => {
+      (error) => {
         bootstrapReady = true;
         setBootstrap(null);
+        handleAccessReadError(error);
         finishLoading();
       }
     );
@@ -82,18 +100,26 @@ export function useAccessControl(user: User | null) {
         );
         finishLoading();
       },
-      () => {
+      (error) => {
         roleReady = true;
         setRoleRecord(null);
+        handleAccessReadError(error);
         finishLoading();
       }
     );
 
     return () => {
+      window.clearTimeout(timeoutId);
       unsubscribeBootstrap();
       unsubscribeRole();
     };
-  }, [user, userEmail]);
+  }, [retryCount, user, userEmail]);
+
+  const retryAccessCheck = useCallback(() => {
+    setAccessError(null);
+    setIsLoading(true);
+    setRetryCount((count) => count + 1);
+  }, []);
 
   const accessState = useMemo(
     () => resolveAccessState(userEmail, bootstrap, roleRecord),
@@ -224,6 +250,8 @@ export function useAccessControl(user: User | null) {
     bootstrap,
     roles,
     isLoading: isLoading || isResolvingCurrentUser,
+    accessError,
+    retryAccessCheck,
     isRolesLoading,
     ...accessState,
     bootstrapOwner,
